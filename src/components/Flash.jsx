@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
-import { ArrowFatLeft, X } from '@phosphor-icons/react'
+import { Gear, Stop, ArrowsOut, ArrowsIn } from '@phosphor-icons/react'
 import FitText from './FitText'
 import EndSheet from './EndSheet'
 import { shuffle } from '../lib/shuffle'
@@ -18,9 +18,21 @@ function Flash({ S, cards, onBackToSettings, onExit }) {
   const [showGrid, setShowGrid] = useState(!!S.previewGrid)
   const [idx, setIdx] = useState(0)
   const [showEnd, setShowEnd] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const touchX = useRef(0)
 
   const card = flashCards[idx]
+
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', handler)
+    return () => document.removeEventListener('fullscreenchange', handler)
+  }, [])
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen()
+    else document.exitFullscreen()
+  }
 
   function advance() {
     if (idx < flashCards.length - 1) setIdx(i => i + 1)
@@ -29,6 +41,10 @@ function Flash({ S, cards, onBackToSettings, onExit }) {
 
   function back() {
     if (idx > 0) setIdx(i => i - 1)
+  }
+
+  function handleStop() {
+    setShowEnd(true)
   }
 
   function handleTouchStart(e) {
@@ -71,14 +87,17 @@ function Flash({ S, cards, onBackToSettings, onExit }) {
   return (
     <div className="mode-screen">
       <div className="mode-topbar">
-        <button className="nav-btn" onClick={onBackToSettings}>
-          <ArrowFatLeft size={18} weight="fill" />
+        <button className="nav-btn" onClick={onBackToSettings} aria-label="Settings">
+          <Gear size={18} weight="fill" />
         </button>
         <span className="topbar-counter">
           {showGrid ? `${flashCards.length} cards` : `${idx + 1} of ${flashCards.length}`}
         </span>
-        <button className="nav-btn" onClick={onExit}>
-          <X size={18} weight="fill" />
+        <button className="nav-btn" onClick={toggleFullscreen} aria-label="Toggle fullscreen">
+          {isFullscreen ? <ArrowsIn size={18} weight="fill" /> : <ArrowsOut size={18} weight="fill" />}
+        </button>
+        <button className="nav-btn" onClick={handleStop} aria-label="Stop">
+          <Stop size={18} weight="fill" />
         </button>
       </div>
 

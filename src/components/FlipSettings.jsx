@@ -1,7 +1,26 @@
 function FlipSettings({ S, updateS }) {
+  const isCoins = S.flipType === 'coins'
+
   return (
     <>
       <div className="settings-row">
+        <div className="settings-block">
+          <span className="settings-label">Type</span>
+          <div className="toggle-group">
+            <button
+              className={`toggle-pill ${!isCoins ? 'active' : ''}`}
+              onClick={() => updateS({ flipType: 'points' })}
+            >
+              Points
+            </button>
+            <button
+              className={`toggle-pill ${isCoins ? 'active' : ''}`}
+              onClick={() => updateS({ flipType: 'coins' })}
+            >
+              Coins
+            </button>
+          </div>
+        </div>
         <div className="settings-block">
           <span className="settings-label">Teams</span>
           <div className="toggle-group">
@@ -56,7 +75,9 @@ function FlipSettings({ S, updateS }) {
       </div>
 
       <div className="flip-info-text">
-        Each team flips a grid of 6 cards worth 5, 4, 3, 2, and 1 points. Hit the stop card and the turn ends — no penalty, you just bank what you found. Teams cycle in order until you end the game.
+        {isCoins
+          ? 'Each team flips one of two cards, hoping to find the coin. Find it and go again — hit the stop card and the turn ends, banking however many coins you found in a row.'
+          : 'Each team flips a grid of 6 cards worth 5, 4, 3, 2, and 1 points. Hit the stop card and the turn ends — no penalty, you just bank what you found. Teams cycle in order until you end the game.'}
       </div>
       <div style={{ flex: 1 }} />
     </>

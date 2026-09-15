@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
-import { ArrowFatLeft, X, DiceFive, ArrowRight, ArrowLeft, Hand, Trophy } from '@phosphor-icons/react'
+import { Gear, Stop, ArrowsOut, ArrowsIn, DiceFive, ArrowRight, ArrowLeft, Hand, Trophy } from '@phosphor-icons/react'
 import { GRID_MAP, buildSnakePath, weightedRandom, ROLL_OUTCOMES, ROLL_WEIGHTS, ROLL_POINT_OPTIONS, ROLL_COLORS } from '../lib/roll'
 import { shuffle } from '../lib/shuffle'
 import { spawnConfetti } from '../lib/confetti'
@@ -20,11 +20,23 @@ function Roll({ S, cards, onBackToSettings, onExit }) {
   const [resultOutcome, setResultOutcome] = useState(null)
   const [resultPoints, setResultPoints] = useState(0)
   const [tokenSize, setTokenSize] = useState(40)
+  const [isFullscreen, setIsFullscreen] = useState(false)
 
   const cardPoolRef = useRef(shuffle([...cards]))
   const cardIdxRef = useRef(0)
   const resultDataRef = useRef({ points: 0, outcome: 'forward' })
   const boardRef = useRef(null)
+
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', handler)
+    return () => document.removeEventListener('fullscreenchange', handler)
+  }, [])
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen()
+    else document.exitFullscreen()
+  }
 
   useEffect(() => {
     function measure() {
@@ -162,8 +174,8 @@ function Roll({ S, cards, onBackToSettings, onExit }) {
   return (
     <div className="mode-screen">
       <div className="mode-topbar">
-        <button className="nav-btn" onClick={onBackToSettings}>
-          <ArrowFatLeft size={18} weight="fill" />
+        <button className="nav-btn" onClick={onBackToSettings} aria-label="Settings">
+          <Gear size={18} weight="fill" />
         </button>
         <div className="team-btns">
           {Array.from({ length: teamCount }).map((_, i) => (
@@ -176,8 +188,11 @@ function Roll({ S, cards, onBackToSettings, onExit }) {
         <button className="topbar-action topbar-action-roll" onClick={tapDie}>
           <DiceFive size={20} weight="fill" />
         </button>
-        <button className="nav-btn" onClick={() => setPhase('end')}>
-          <X size={18} weight="fill" />
+        <button className="nav-btn" onClick={toggleFullscreen} aria-label="Toggle fullscreen">
+          {isFullscreen ? <ArrowsIn size={18} weight="fill" /> : <ArrowsOut size={18} weight="fill" />}
+        </button>
+        <button className="nav-btn" onClick={() => setPhase('end')} aria-label="Stop">
+          <Stop size={18} weight="fill" />
         </button>
       </div>
 

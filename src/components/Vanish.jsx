@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { ArrowFatLeft, X, Ghost } from '@phosphor-icons/react'
+import { Gear, Stop, ArrowsOut, ArrowsIn, Ghost } from '@phosphor-icons/react'
 import EndSheet from './EndSheet'
 import GuessModal from './GuessModal'
 import { shuffle } from '../lib/shuffle'
@@ -7,6 +7,10 @@ import { spawnConfetti } from '../lib/confetti'
 import { autoVanishGrid, buildVanishPool } from '../lib/vanishGrid'
 
 const SHUFFLE_COLORS = ['var(--flash)', 'var(--reveal)', 'var(--target)', 'var(--vanish)']
+
+function uniqueLabels(cards) {
+  return [...new Set(cards.map(c => c.label))]
+}
 
 function Vanish({ S, cards, onBackToSettings, onExit }) {
   const poolCards = useRef(buildVanishPool(cards))
@@ -20,9 +24,24 @@ function Vanish({ S, cards, onBackToSettings, onExit }) {
   const [phase, setPhase] = useState('study') // 'study' | 'shuffling' | 'guessing'
   const [cycleStep, setCycleStep] = useState(0)
   const [showGuess, setShowGuess] = useState(false)
-  const [wrongGuesses, setWrongGuesses] = useState([])
+  const [guessWords, setGuessWords] = useState(() => uniqueLabels(cards))
+  const [disabledWords, setDisabledWords] = useState([])
   const [peekIdx, setPeekIdx] = useState(null)
   const [showRoundEnd, setShowRoundEnd] = useState(false)
+  const [manualStop, setManualStop] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const shuffleIntervalRef = useRef(null)
+
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', handler)
+    return () => document.removeEventListener('fullscreenchange', handler)
+  }, [])
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen()
+    else document.exitFullscreen()
+  }
 
   function startRound(roundNum) {
     const fresh = shuffle([...poolCards.current])
@@ -31,7 +50,8 @@ function Vanish({ S, cards, onBackToSettings, onExit }) {
     setGridCards(fresh)
     setGhostIdxs(shuffle(allIdx).slice(0, numGhost))
     setFoundIdxs([])
-    setWrongGuesses([])
+    setGuessWords(uniqueLabels(cards))
+    setDisabledWords([])
     setPhase('study')
     setCycleStep(0)
   }
@@ -44,11 +64,11 @@ function Vanish({ S, cards, onBackToSettings, onExit }) {
     setPhase('shuffling')
     let step = 0
     setCycleStep(0)
-    const interval = setInterval(() => {
+    shuffleIntervalRef.current = setInterval(() => {
       step++
       setCycleStep(step)
       if (step >= 5) {
-        clearInterval(interval)
+        clearInterval(shuffleIntervalRef.current)
         setTimeout(() => {
           setGridCards(shuffle([...poolCards.current]))
           setPhase('guessing')
@@ -62,14 +82,14 @@ function Vanish({ S, cards, onBackToSettings, onExit }) {
     else if (phase === 'guessing') setShowGuess(true)
   }
 
-  function handleGuess(text) {
+  function handleGuess(word) {
     const remaining = ghostIdxs.filter(i => !foundIdxs.includes(i))
-    const match = remaining.find(i => gridCards[i].label.trim().toLowerCase() === text.trim().toLowerCase())
+    const match = remaining.find(i => gridCards[i].label.trim().toLowerCase() === word.trim().toLowerCase())
     if (match !== undefined) {
       const newFound = [...foundIdxs, match]
       setFoundIdxs(newFound)
       setShowGuess(false)
-      setWrongGuesses([])
+      setDisabledWords([])
       spawnConfetti(['var(--flash)', 'var(--reveal)', 'var(--target)', 'var(--vanish)'])
       const allFound = ghostIdxs.every(i => newFound.includes(i))
       if (allFound) {
@@ -77,7 +97,7 @@ function Vanish({ S, cards, onBackToSettings, onExit }) {
       }
       return true
     }
-    setWrongGuesses(prev => [...prev, text])
+    setDisabledWords(prev => [...prev, word])
     return false
   }
 
@@ -102,11 +122,17 @@ function Vanish({ S, cards, onBackToSettings, onExit }) {
     }
   }
 
+  function handleStop() {
+    clearInterval(shuffleIntervalRef.current)
+    setManualStop(true)
+    setShowRoundEnd(true)
+  }
+
   return (
     <div className="mode-screen">
       <div className="mode-topbar">
-        <button className="nav-btn" onClick={onBackToSettings}>
-          <ArrowFatLeft size={18} weight="fill" />
+        <button className="nav-btn" onClick={onBackToSettings} aria-label="Settings">
+          <Gear size={18} weight="fill" />
         </button>
         <button className="topbar-action topbar-action-vanish" onClick={actionTap}>
           {phase === 'study' ? 'Shuffle' : 'Guess'}
@@ -116,8 +142,11 @@ function Vanish({ S, cards, onBackToSettings, onExit }) {
             Show Me
           </button>
         )}
-        <button className="nav-btn" onClick={onExit}>
-          <X size={18} weight="fill" />
+        <button className="nav-btn" onClick={toggleFullscreen} aria-label="Toggle fullscreen">
+          {isFullscreen ? <ArrowsIn size={18} weight="fill" /> : <ArrowsOut size={18} weight="fill" />}
+        </button>
+        <button className="nav-btn" onClick={handleStop} aria-label="Stop">
+          <Stop size={18} weight="fill" />
         </button>
       </div>
 
@@ -166,19 +195,20 @@ function Vanish({ S, cards, onBackToSettings, onExit }) {
       {showGuess && (
         <GuessModal
           title="Guess the vanished card!"
-          wrongGuesses={wrongGuesses}
-          submitClassName="guess-submit-vanish"
-          onSubmit={handleGuess}
+          words={guessWords}
+          disabledWords={disabledWords}
+          accentClassName="guess-accent-vanish"
+          onGuess={handleGuess}
           onClose={() => setShowGuess(false)}
         />
       )}
 
       {showRoundEnd && (
         <EndSheet
-          title={isLastRound ? 'All done!' : `Round ${round + 1} finished!`}
-          primaryLabel={isLastRound ? 'Play Again' : 'Next Round'}
+          title={manualStop ? 'Stopped' : (isLastRound ? 'All done!' : `Round ${round + 1} finished!`)}
+          primaryLabel={manualStop ? 'Back to Settings' : (isLastRound ? 'Play Again' : 'Next Round')}
           primaryClassName="end-btn-vanish"
-          onPrimary={nextRoundOrPlayAgain}
+          onPrimary={manualStop ? onBackToSettings : nextRoundOrPlayAgain}
           onSecondary={onExit}
         />
       )}

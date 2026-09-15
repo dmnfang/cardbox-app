@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { ArrowFatLeft, X, Eye, ArrowRight, Play, Pause } from '@phosphor-icons/react'
+import { Gear, Stop, ArrowsOut, ArrowsIn, Eye, ArrowRight } from '@phosphor-icons/react'
 import FitText from './FitText'
 import EndSheet from './EndSheet'
 import GuessModal from './GuessModal'
@@ -9,6 +9,10 @@ import { spawnConfetti } from '../lib/confetti'
 const REV_SPEED = { 1: 1400, 2: 800, 3: 500 }
 const SQ_COLORS = ['var(--flash)', 'var(--reveal)', 'var(--target)', 'var(--vanish)']
 const GRID_MAP = { '4x4': [4, 4], '6x4': [6, 4], '8x4': [8, 4], '10x4': [10, 4] }
+
+function uniqueLabels(cards) {
+  return [...new Set(cards.map(c => c.label))]
+}
 
 function Reveal({ S, cards, onBackToSettings, onExit }) {
   // Reveal always shuffles, regardless of the cardOrder setting (that's Flash-only in v1)
@@ -22,14 +26,27 @@ function Reveal({ S, cards, onBackToSettings, onExit }) {
   const [done, setDone] = useState(false)
   const [showEnd, setShowEnd] = useState(false)
   const [showGuess, setShowGuess] = useState(false)
-  const [wrongGuesses, setWrongGuesses] = useState([])
+  const [guessWords, setGuessWords] = useState(() => uniqueLabels(cards))
+  const [disabledWords, setDisabledWords] = useState([])
   const [squareRect, setSquareRect] = useState(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
 
   const timerRef = useRef(null)
   const imgRef = useRef(null)
   const cardRef = useRef(null)
 
   const card = revealCards.current[idx]
+
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', handler)
+    return () => document.removeEventListener('fullscreenchange', handler)
+  }, [])
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen()
+    else document.exitFullscreen()
+  }
 
   // Timer removes a random remaining square
   useEffect(() => {
@@ -64,7 +81,7 @@ function Reveal({ S, cards, onBackToSettings, onExit }) {
       const img = imgRef.current
       const cardEl = cardRef.current
       if (!img || !cardEl || !img.naturalWidth) return
-      const padding = 24
+      const padding = 20
       const cardRectBox = cardEl.getBoundingClientRect()
       const cw = cardRectBox.width - padding * 2
       const ch = cardRectBox.height - padding * 2
@@ -99,13 +116,9 @@ function Reveal({ S, cards, onBackToSettings, onExit }) {
     setGone(Array(total).fill(true))
   }
 
-  function togglePause() {
-    if (!paused) {
-      setPaused(true)
-      setShowGuess(true)
-    } else {
-      setPaused(false)
-    }
+  function openGuess() {
+    setPaused(true)
+    setShowGuess(true)
   }
 
   function closeGuessModal() {
@@ -113,17 +126,17 @@ function Reveal({ S, cards, onBackToSettings, onExit }) {
     setPaused(false)
   }
 
-  function handleGuess(text) {
-    const correct = card.label.trim().toLowerCase() === text.trim().toLowerCase()
+  function handleGuess(word) {
+    const correct = card.label.trim().toLowerCase() === word.trim().toLowerCase()
     if (correct) {
       setShowGuess(false)
-      setWrongGuesses([])
+      setDisabledWords([])
       revealAll()
       spawnConfetti(['var(--flash)', 'var(--reveal)', 'var(--target)', 'var(--vanish)'])
       setPaused(false)
       return true
     }
-    setWrongGuesses(prev => [...prev, text])
+    setDisabledWords(prev => [...prev, word])
     return false
   }
 
@@ -138,11 +151,17 @@ function Reveal({ S, cards, onBackToSettings, onExit }) {
       setGone(Array(total).fill(false))
       setDone(false)
       setPaused(false)
-      setWrongGuesses([])
+      setGuessWords(uniqueLabels(cards))
+      setDisabledWords([])
       setSquareRect(null)
     } else {
       setShowEnd(true)
     }
+  }
+
+  function handleStop() {
+    clearInterval(timerRef.current)
+    setShowEnd(true)
   }
 
   function playAgain() {
@@ -153,28 +172,22 @@ function Reveal({ S, cards, onBackToSettings, onExit }) {
 
   if (!card) return null
 
-  const squaresStyle = S.revealContent === 'image'
-    ? (squareRect
-      ? {
-          position: 'absolute',
-          left: squareRect.left,
-          top: squareRect.top,
-          width: squareRect.width,
-          height: squareRect.height,
-          display: 'grid',
-          gridTemplateColumns: `repeat(${cols}, 1fr)`,
-          gridTemplateRows: `repeat(${rows}, 1fr)`,
-        }
-      : {
-          position: 'absolute',
-          inset: 24,
-          display: 'grid',
-          gridTemplateColumns: `repeat(${cols}, 1fr)`,
-          gridTemplateRows: `repeat(${rows}, 1fr)`,
-        })
+  const squaresReady = S.revealContent !== 'image' || squareRect !== null
+
+  const squaresStyle = S.revealContent === 'image' && squareRect
+    ? {
+        position: 'absolute',
+        left: squareRect.left,
+        top: squareRect.top,
+        width: squareRect.width,
+        height: squareRect.height,
+        display: 'grid',
+        gridTemplateColumns: `repeat(${cols}, 1fr)`,
+        gridTemplateRows: `repeat(${rows}, 1fr)`,
+      }
     : {
         position: 'absolute',
-        inset: 24,
+        inset: 20,
         display: 'grid',
         gridTemplateColumns: `repeat(${cols}, 1fr)`,
         gridTemplateRows: `repeat(${rows}, 1fr)`,
@@ -183,31 +196,43 @@ function Reveal({ S, cards, onBackToSettings, onExit }) {
   return (
     <div className="mode-screen">
       <div className="mode-topbar">
-        <button className="nav-btn" onClick={onBackToSettings}>
-          <ArrowFatLeft size={18} weight="fill" />
+        <button className="nav-btn" onClick={onBackToSettings} aria-label="Settings">
+          <Gear size={18} weight="fill" />
         </button>
-        <button className="nav-btn" onClick={togglePause}>
-          {paused ? <Play size={18} weight="fill" /> : <Pause size={18} weight="fill" />}
+        <button
+          className="topbar-action topbar-action-reveal"
+          disabled={done || paused}
+          onClick={openGuess}
+        >
+          Guess
         </button>
         <span className="topbar-counter">{idx + 1} of {revealCards.current.length}</span>
-        <button className="nav-btn" onClick={actionTap}>
+        <button className="nav-btn" onClick={actionTap} aria-label={done ? 'Next card' : 'Reveal all'}>
           {done ? <ArrowRight size={18} weight="fill" /> : <Eye size={18} weight="fill" />}
         </button>
-        <button className="nav-btn" onClick={onExit}>
-          <X size={18} weight="fill" />
+        <button className="nav-btn" onClick={toggleFullscreen} aria-label="Toggle fullscreen">
+          {isFullscreen ? <ArrowsIn size={18} weight="fill" /> : <ArrowsOut size={18} weight="fill" />}
+        </button>
+        <button className="nav-btn" onClick={handleStop} aria-label="Stop">
+          <Stop size={18} weight="fill" />
         </button>
       </div>
 
       <div className="reveal-stage">
         <div className={`reveal-card ${done ? 'revealed' : ''}`} ref={cardRef}>
           <div className="reveal-content">
-            {S.revealContent === 'image' ? (
-              <img ref={imgRef} src={card.image_url} alt={card.label} />
-            ) : (
-              <FitText text={card.label} maxSize={320} minSize={32} className="reveal-word" />
-            )}
-          </div>
-          <div className="reveal-squares" style={squaresStyle}>
+  {S.revealContent === 'image' ? (
+    <>
+      <div className="reveal-img-wrap">
+        <img ref={imgRef} src={card.image_url} alt={card.label} />
+      </div>
+      {done && <div key={idx} className="reveal-label">{card.label}</div>}
+    </>
+  ) : (
+    <FitText text={card.label} maxSize={320} minSize={32} className="reveal-word" />
+  )}
+</div>
+          <div className="reveal-squares" style={squaresStyle} hidden={!squaresReady}>
             {Array.from({ length: total }).map((_, i) => (
               <div
                 key={`${idx}-${i}`}
@@ -223,9 +248,10 @@ function Reveal({ S, cards, onBackToSettings, onExit }) {
       {showGuess && (
         <GuessModal
           title="What is the card?"
-          wrongGuesses={wrongGuesses}
-          submitClassName="guess-submit-reveal"
-          onSubmit={handleGuess}
+          words={guessWords}
+          disabledWords={disabledWords}
+          accentClassName="guess-accent-reveal"
+          onGuess={handleGuess}
           onClose={closeGuessModal}
         />
       )}

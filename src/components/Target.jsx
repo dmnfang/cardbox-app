@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react'
-import { ArrowFatLeft, X } from '@phosphor-icons/react'
+import { useState, useRef, useEffect } from 'react'
+import { Gear, Stop, ArrowsOut, ArrowsIn } from '@phosphor-icons/react'
 import FitText from './FitText'
 import EndSheet from './EndSheet'
 import { shuffle } from '../lib/shuffle'
@@ -12,10 +12,23 @@ function Target({ S, cards, onBackToSettings, onExit }) {
   const [cardIdx, setCardIdx] = useState(0)
   const [hit, setHit] = useState(false)
   const [showEnd, setShowEnd] = useState(false)
+  const [manualStop, setManualStop] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const roundCards = useRef([])
 
   const keyword = targetWords[round]
   const isLastRound = round >= targetWords.length - 1
+
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', handler)
+    return () => document.removeEventListener('fullscreenchange', handler)
+  }, [])
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen()
+    else document.exitFullscreen()
+  }
 
   function startRound() {
     const deck = shuffle([...cards])
@@ -29,6 +42,7 @@ function Target({ S, cards, onBackToSettings, onExit }) {
     roundCards.current = deck
     setCardIdx(0)
     setHit(false)
+    setManualStop(false)
     setPhase('active')
   }
 
@@ -58,6 +72,11 @@ function Target({ S, cards, onBackToSettings, onExit }) {
     }
   }
 
+  function handleStop() {
+    setManualStop(!hit)
+    setShowEnd(true)
+  }
+
   if (!keyword) return null
 
   const activeCard = phase === 'active' ? roundCards.current[cardIdx] : null
@@ -65,16 +84,19 @@ function Target({ S, cards, onBackToSettings, onExit }) {
   return (
     <div className="mode-screen">
       <div className="mode-topbar">
-        <button className="nav-btn" onClick={onBackToSettings}>
-          <ArrowFatLeft size={18} weight="fill" />
+        <button className="nav-btn" onClick={onBackToSettings} aria-label="Settings">
+          <Gear size={18} weight="fill" />
         </button>
         <span className="topbar-counter">
           {phase === 'intro'
             ? `Round ${round + 1} of ${targetWords.length}`
             : `${cardIdx + 1} of ${roundCards.current.length}`}
         </span>
-        <button className="nav-btn" onClick={onExit}>
-          <X size={18} weight="fill" />
+        <button className="nav-btn" onClick={toggleFullscreen} aria-label="Toggle fullscreen">
+          {isFullscreen ? <ArrowsIn size={18} weight="fill" /> : <ArrowsOut size={18} weight="fill" />}
+        </button>
+        <button className="nav-btn" onClick={handleStop} aria-label="Stop">
+          <Stop size={18} weight="fill" />
         </button>
       </div>
 
@@ -120,10 +142,10 @@ function Target({ S, cards, onBackToSettings, onExit }) {
 
       {showEnd && (
         <EndSheet
-          title={isLastRound ? 'All done!' : `Round ${round + 1} finished!`}
-          primaryLabel={isLastRound ? 'Play Again' : 'Next Round'}
+          title={manualStop ? 'Stopped' : (isLastRound ? 'All done!' : `Round ${round + 1} finished!`)}
+          primaryLabel={manualStop ? 'Back to Settings' : (isLastRound ? 'Play Again' : 'Next Round')}
           primaryClassName="end-btn-target"
-          onPrimary={nextRoundOrPlayAgain}
+          onPrimary={manualStop ? onBackToSettings : nextRoundOrPlayAgain}
           onSecondary={onExit}
         />
       )}

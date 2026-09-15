@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
-import { ArrowFatLeft, X, Trophy } from '@phosphor-icons/react'
+import { Gear, Stop, ArrowsOut, ArrowsIn, Trophy } from '@phosphor-icons/react'
 import { buildSpellWords, isLetterChar, formatClock, ALPHABET } from '../lib/spellRun'
 import { spawnConfetti } from '../lib/confetti'
 
@@ -25,6 +25,7 @@ function Spell({ S, updateS, cards, onBackToSettings, onExit }) {
   const [timeLeft, setTimeLeft] = useState(S.spellTotalTime)
   const [status, setStatus] = useState('playing') // 'playing' | 'wordComplete' | 'timeUp' | 'allDone' | 'quit'
   const [showEnd, setShowEnd] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
 
   const timerRef = useRef(null)
   const advanceTimeoutRef = useRef(null)
@@ -41,6 +42,17 @@ function Spell({ S, updateS, cards, onBackToSettings, onExit }) {
     return -1
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wordChars, filledPositions])
+
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', handler)
+    return () => document.removeEventListener('fullscreenchange', handler)
+  }, [])
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen()
+    else document.exitFullscreen()
+  }
 
   useEffect(() => {
     if (status !== 'playing') return
@@ -138,12 +150,15 @@ function Spell({ S, updateS, cards, onBackToSettings, onExit }) {
   return (
     <div className="mode-screen spell-scope">
       <div className="mode-topbar">
-        <button className="nav-btn" onClick={onBackToSettings}>
-          <ArrowFatLeft size={18} weight="fill" />
+        <button className="nav-btn" onClick={onBackToSettings} aria-label="Settings">
+          <Gear size={18} weight="fill" />
         </button>
         <span className="topbar-counter">Word {Math.min(wordIdx + 1, spellWords.current.length)} of {spellWords.current.length}</span>
-        <button className="nav-btn" onClick={handleQuit}>
-          <X size={18} weight="fill" />
+        <button className="nav-btn" onClick={toggleFullscreen} aria-label="Toggle fullscreen">
+          {isFullscreen ? <ArrowsIn size={18} weight="fill" /> : <ArrowsOut size={18} weight="fill" />}
+        </button>
+        <button className="nav-btn" onClick={handleQuit} aria-label="Stop">
+          <Stop size={18} weight="fill" />
         </button>
       </div>
 

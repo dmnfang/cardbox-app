@@ -1,35 +1,38 @@
 import { supabase } from './supabase'
 
-export async function fetchCardboxLibrary() {
-  const { data: sources, error: sourcesError } = await supabase
-    .from('sources')
-    .select('id, name, position')
-    .order('position')
-  if (sourcesError) throw sourcesError
+const V3_SOURCE_ID = 'bb093e7b-6584-43e9-a5ce-28fbf92c0673' // "Cardbox - Original"
 
+export async function fetchCardboxLibrary() {
   const { data: categories, error: categoriesError } = await supabase
     .from('categories')
-    .select('id, source_id, name, position, cards(count)')
+    .select('id, name, position')
+    .eq('source_id', V3_SOURCE_ID)
     .eq('cardbox_enabled', true)
     .order('position')
   if (categoriesError) throw categoriesError
 
-  const decksBySource = {}
-  categories.forEach(cat => {
-    const deck = {
-      id: cat.id,
-      source_id: cat.source_id,
-      name: cat.name,
-      position: cat.position,
-      cardCount: cat.cards?.[0]?.count ?? 0,
-    }
-    if (!decksBySource[cat.source_id]) decksBySource[cat.source_id] = []
-    decksBySource[cat.source_id].push(deck)
+  const categoryIds = categories.map(c => c.id)
+
+  const { data: cards, error: cardsError } = await supabase
+    .from('cards')
+    .select('id, category_id, label, position')
+    .in('category_id', categoryIds)
+    .order('position')
+  if (cardsError) throw cardsError
+
+  const labelsByCategory = {}
+  cards.forEach(card => {
+    if (!labelsByCategory[card.category_id]) labelsByCategory[card.category_id] = []
+    labelsByCategory[card.category_id].push(card.label)
   })
 
-  return sources
-    .filter(s => decksBySource[s.id]?.length)
-    .map(s => ({ ...s, decks: decksBySource[s.id] }))
+  return categories.map(cat => ({
+    id: cat.id,
+    name: cat.name,
+    position: cat.position,
+    cardCount: labelsByCategory[cat.id]?.length ?? 0,
+    labels: labelsByCategory[cat.id] ?? [],
+  }))
 }
 
 export async function fetchDeckCards(categoryIds) {

@@ -1,58 +1,41 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 
-function GuessModal({ title, wrongGuesses, submitClassName, onSubmit, onClose }) {
-  const [value, setValue] = useState('')
-  const [shake, setShake] = useState(false)
-  const inputRef = useRef(null)
+function GuessModal({ title, words, disabledWords, accentClassName, onGuess, onClose }) {
+  const [shakeWord, setShakeWord] = useState(null)
 
-  useEffect(() => {
-    const t = setTimeout(() => inputRef.current?.focus(), 80)
-    return () => clearTimeout(t)
-  }, [])
-
-  function handleSubmit() {
-    const text = value.trim()
-    if (!text) return
-    const correct = onSubmit(text)
-    setValue('')
+  function handleTap(word) {
+    if (disabledWords.includes(word)) return
+    const correct = onGuess(word)
     if (!correct) {
-      setShake(true)
-      setTimeout(() => setShake(false), 400)
-      inputRef.current?.focus()
+      setShakeWord(word)
+      setTimeout(() => setShakeWord(null), 400)
     }
-  }
-
-  function handleKeyDown(e) {
-    if (e.key === 'Enter') handleSubmit()
   }
 
   return (
     <div className="guess-modal">
       <div className="guess-top">
-        <div className="guess-title">{title}</div>
-        <div className="wrong-guesses">
-          {wrongGuesses.map((g, i) => (
-            <div key={i} className="wrong-chip">{g}</div>
-          ))}
-        </div>
-        <div className="guess-input-row">
+        <div className="guess-top-header">
+          <div className="guess-title">{title}</div>
           <button className="guess-close" onClick={onClose}>✕</button>
-          <input
-            ref={inputRef}
-            className={`guess-input ${shake ? 'shake' : ''}`}
-            type="text"
-            placeholder="Enter a guess.."
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck="false"
-            value={value}
-            onChange={e => setValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-          />
-          <button className={`guess-submit ${submitClassName}`} onClick={handleSubmit}>
-            Submit
-          </button>
+        </div>
+
+        <div className={`guess-accent-bar ${accentClassName}`} />
+
+        <div className="guess-word-grid">
+          {words.map(word => {
+            const isDisabled = disabledWords.includes(word)
+            return (
+              <button
+                key={word}
+                className={`guess-word-btn ${shakeWord === word ? 'shake' : ''}`}
+                disabled={isDisabled}
+                onClick={() => handleTap(word)}
+              >
+                {word}
+              </button>
+            )
+          })}
         </div>
       </div>
     </div>
