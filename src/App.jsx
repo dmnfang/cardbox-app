@@ -9,6 +9,7 @@ import Vanish from './components/Vanish'
 import Roll from './components/Roll'
 import Flip from './components/Flip'
 import Spell from './components/Spell'
+import Call from './components/Call'
 import { fetchDeckCards } from './lib/api'
 import { getSession, getProfile, onAuthStateChange } from './lib/auth'
 
@@ -134,6 +135,10 @@ function App() {
   if (screen === 'spell') {
     return <Spell S={S} updateS={updateS} cards={pending.cards} onBackToSettings={handleBackToSettings} onExit={handleBackHome} />
   }
+
+  if (screen === 'call') {
+  return <Call S={S} cards={pending.cards} onBackToSettings={handleBackToSettings} onExit={handleBackHome} />
+}
 
   if (screen === 'prelaunch') {
     return <Prelaunch S={S} updateS={updateS} onBack={handleBackHome} onLaunch={handleLaunchGame} />
