@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 
-const V3_SOURCE_ID = 'bb093e7b-6584-43e9-a5ce-28fbf92c0673' // "Cardbox - Original"
+const V3_SOURCE_ID = 'bb093e7b-6584-43e9-a5ce-28fbf92c0673' // Cardbox - Original
 
 export async function fetchCardboxLibrary() {
   const { data: categories, error: categoriesError } = await supabase
@@ -13,12 +13,21 @@ export async function fetchCardboxLibrary() {
 
   const categoryIds = categories.map(c => c.id)
 
-  const { data: cards, error: cardsError } = await supabase
-    .from('cards')
-    .select('id, category_id, label, position')
-    .in('category_id', categoryIds)
-    .order('position')
-  if (cardsError) throw cardsError
+  const cards = []
+  const PAGE_SIZE = 1000
+  let from = 0
+  while (true) {
+    const { data, error } = await supabase
+      .from('cards')
+      .select('id, category_id, label, position')
+      .in('category_id', categoryIds)
+      .order('position')
+      .range(from, from + PAGE_SIZE - 1)
+    if (error) throw error
+    cards.push(...data)
+    if (data.length < PAGE_SIZE) break
+    from += PAGE_SIZE
+  }
 
   const labelsByCategory = {}
   cards.forEach(card => {
