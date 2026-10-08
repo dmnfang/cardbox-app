@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Gear, Stop, ArrowsOut, ArrowsIn, Ghost } from '@phosphor-icons/react'
+import { Gear, Stop, ArrowsOut, ArrowsIn, Ghost, Minus, Plus } from '@phosphor-icons/react'
 import EndSheet from './EndSheet'
 import GuessModal from './GuessModal'
 import { shuffle } from '../lib/shuffle'
@@ -15,13 +15,14 @@ function uniqueLabels(cards) {
 function Vanish({ S, cards, onBackToSettings, onExit }) {
   const poolCards = useRef(buildVanishPool(cards))
   const [cols, rows] = autoVanishGrid(poolCards.current.length)
-  const total = cols * rows
+  const maxVanish = Math.max(1, Math.min(8, poolCards.current.length - 1))
 
+  const [vanishCount, setVanishCount] = useState(1)
   const [round, setRound] = useState(0)
   const [gridCards, setGridCards] = useState(() => shuffle([...poolCards.current]))
   const [ghostIdxs, setGhostIdxs] = useState([])
   const [foundIdxs, setFoundIdxs] = useState([])
-  const [phase, setPhase] = useState('study') // 'study' | 'shuffling' | 'guessing'
+  const [phase, setPhase] = useState('study')
   const [cycleStep, setCycleStep] = useState(0)
   const [showGuess, setShowGuess] = useState(false)
   const [guessWords, setGuessWords] = useState(() => uniqueLabels(cards))
@@ -43,39 +44,41 @@ function Vanish({ S, cards, onBackToSettings, onExit }) {
     else document.exitFullscreen()
   }
 
-  function startRound(roundNum) {
-    const fresh = shuffle([...poolCards.current])
-    const numGhost = roundNum + 1
-    const allIdx = fresh.map((_, i) => i)
-    setGridCards(fresh)
-    setGhostIdxs(shuffle(allIdx).slice(0, numGhost))
-    setFoundIdxs([])
-    setGuessWords(uniqueLabels(cards))
-    setDisabledWords([])
-    setPhase('study')
-    setCycleStep(0)
-  }
+  function startRound() {
+  const fresh = shuffle([...poolCards.current])
+  setGridCards(fresh)
+  setGhostIdxs([])
+  setFoundIdxs([])
+  setGuessWords(uniqueLabels(cards))
+  setDisabledWords([])
+  setPhase('study')
+  setCycleStep(0)
+}
 
   useEffect(() => {
-    startRound(0)
+    startRound()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   function doShuffle() {
-    setPhase('shuffling')
-    let step = 0
-    setCycleStep(0)
-    shuffleIntervalRef.current = setInterval(() => {
-      step++
-      setCycleStep(step)
-      if (step >= 5) {
-        clearInterval(shuffleIntervalRef.current)
-        setTimeout(() => {
-          setGridCards(shuffle([...poolCards.current]))
-          setPhase('guessing')
-        }, 200)
-      }
-    }, 200)
-  }
+  const countAtTap = vanishCount
+  setPhase('shuffling')
+  let step = 0
+  setCycleStep(0)
+  shuffleIntervalRef.current = setInterval(() => {
+    step++
+    setCycleStep(step)
+    if (step >= 5) {
+      clearInterval(shuffleIntervalRef.current)
+      setTimeout(() => {
+        const reshuffled = shuffle([...poolCards.current])
+        setGridCards(reshuffled)
+        setGhostIdxs(shuffle(reshuffled.map((_, i) => i)).slice(0, countAtTap))
+        setPhase('guessing')
+      }, 200)
+    }
+  }, 200)
+}
 
   function actionTap() {
     if (phase === 'study') doShuffle()
@@ -109,23 +112,20 @@ function Vanish({ S, cards, onBackToSettings, onExit }) {
     setTimeout(() => setPeekIdx(null), 500)
   }
 
-  const isLastRound = round >= S.vanishRounds - 1
-
-  function nextRoundOrPlayAgain() {
+  function nextRound() {
     setShowRoundEnd(false)
-    if (isLastRound) {
-      onBackToSettings()
-    } else {
-      const nextRound = round + 1
-      setRound(nextRound)
-      startRound(nextRound)
-    }
+    setRound(r => r + 1)
+    startRound()
   }
 
   function handleStop() {
     clearInterval(shuffleIntervalRef.current)
     setManualStop(true)
     setShowRoundEnd(true)
+  }
+
+  function adjustVanishCount(delta) {
+    setVanishCount(c => Math.max(1, Math.min(maxVanish, c + delta)))
   }
 
   return (
@@ -137,6 +137,27 @@ function Vanish({ S, cards, onBackToSettings, onExit }) {
         <button className="topbar-action topbar-action-vanish" onClick={actionTap}>
           {phase === 'study' ? 'Shuffle' : 'Guess'}
         </button>
+        <div className="vanish-count-stepper">
+          <button
+            className="vanish-count-btn"
+            onClick={() => adjustVanishCount(-1)}
+            disabled={vanishCount <= 1 || phase !== 'study'}
+            aria-label="Fewer cards vanish"
+          >
+            <Minus size={14} weight="bold" />
+          </button>
+          <span className="vanish-count-value">
+            <Ghost size={18} weight="fill" /> {vanishCount}
+          </span>
+          <button
+            className="vanish-count-btn"
+            onClick={() => adjustVanishCount(1)}
+            disabled={vanishCount >= maxVanish || phase !== 'study'}
+            aria-label="More cards vanish"
+          >
+            <Plus size={14} weight="bold" />
+          </button>
+        </div>
         {phase === 'guessing' && (
           <button className="nav-btn nav-btn-showme" onClick={showMe}>
             Show Me
@@ -177,7 +198,7 @@ function Vanish({ S, cards, onBackToSettings, onExit }) {
                     className={`vanish-cell ${isGhost ? 'ghost' : ''} ${isCorrect ? 'correct' : ''}`}
                   >
                     {isGhost ? (
-                      <Ghost className="vanish-ghost-icon" size={28} weight="fill" />
+                      <Ghost className="vanish-ghost-icon" size={64} weight="fill" />
                     ) : (
                       <>
                         <div className="vanish-cell-img">
@@ -205,10 +226,10 @@ function Vanish({ S, cards, onBackToSettings, onExit }) {
 
       {showRoundEnd && (
         <EndSheet
-          title={manualStop ? 'Stopped' : (isLastRound ? 'All done!' : `Round ${round + 1} finished!`)}
-          primaryLabel={manualStop ? 'Back to Settings' : (isLastRound ? 'Play Again' : 'Next Round')}
+          title={manualStop ? 'Stopped' : `Round ${round + 1} finished!`}
+          primaryLabel={manualStop ? 'Back to Settings' : 'Next Round'}
           primaryClassName="end-btn-vanish"
-          onPrimary={manualStop ? onBackToSettings : nextRoundOrPlayAgain}
+          onPrimary={manualStop ? onBackToSettings : nextRound}
           onSecondary={onExit}
         />
       )}

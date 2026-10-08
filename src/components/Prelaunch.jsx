@@ -140,8 +140,7 @@ function Prelaunch({ S, updateS, onBack, onLaunch }) {
             disabled={
               S.selectedDecks.length === 0 ||
               activeCards.length === 0 ||
-              !IMPLEMENTED_MODES.includes(S.mode) ||
-              (S.mode === 'target' && (S.targetWords?.length ?? 0) === 0)
+              !IMPLEMENTED_MODES.includes(S.mode)
             }
             onClick={() => onLaunch(S.mode, activeCards)}
           >

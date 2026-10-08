@@ -1,23 +1,13 @@
-import { useState, useRef, useEffect } from 'react'
-import { Gear, Stop, ArrowsOut, ArrowsIn } from '@phosphor-icons/react'
-import FitText from './FitText'
+import { useState, useEffect } from 'react'
+import { Gear, Stop, ArrowsOut, ArrowsIn, CheckFat as Check, Crosshair as TargetIcon } from '@phosphor-icons/react'
 import EndSheet from './EndSheet'
-import { shuffle } from '../lib/shuffle'
-import { spawnConfetti } from '../lib/confetti'
 
 function Target({ S, cards, onBackToSettings, onExit }) {
-  const targetWords = S.targetWords || []
-  const [round, setRound] = useState(0)
-  const [phase, setPhase] = useState('intro') // 'intro' | 'active'
-  const [cardIdx, setCardIdx] = useState(0)
-  const [hit, setHit] = useState(false)
+  const isKaruta = S.targetGameType === 'karuta'
+  const [keywordId, setKeywordId] = useState(null)
+  const [claimedIds, setClaimedIds] = useState(() => new Set())
   const [showEnd, setShowEnd] = useState(false)
-  const [manualStop, setManualStop] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
-  const roundCards = useRef([])
-
-  const keyword = targetWords[round]
-  const isLastRound = round >= targetWords.length - 1
 
   useEffect(() => {
     const handler = () => setIsFullscreen(!!document.fullscreenElement)
@@ -30,56 +20,29 @@ function Target({ S, cards, onBackToSettings, onExit }) {
     else document.exitFullscreen()
   }
 
-  function startRound() {
-    const deck = shuffle([...cards])
-    // Push the target to at least 40% through the deck so it's never trivially early
-    const targetIdx = deck.findIndex(c => c.id === keyword.id)
-    const minPos = Math.floor(deck.length * 0.4)
-    if (targetIdx !== -1 && targetIdx < minPos) {
-      deck.splice(targetIdx, 1)
-      deck.splice(minPos, 0, keyword)
-    }
-    roundCards.current = deck
-    setCardIdx(0)
-    setHit(false)
-    setManualStop(false)
-    setPhase('active')
-  }
-
-  function targetNext() {
-    if (hit) {
-      setShowEnd(true)
-      return
-    }
-    let nextIdx = (cardIdx + 1) % roundCards.current.length
-    if (nextIdx === 0) roundCards.current = shuffle([...cards])
-    setCardIdx(nextIdx)
-
-    const nextCard = roundCards.current[nextIdx]
-    if (nextCard.id === keyword.id) {
-      setHit(true)
-      spawnConfetti(['var(--flash)', 'var(--reveal)', 'var(--target)', 'var(--vanish)'])
-    }
-  }
-
-  function nextRoundOrPlayAgain() {
-    setShowEnd(false)
-    if (isLastRound) {
-      onBackToSettings()
+  function tapCard(card) {
+    if (isKaruta) {
+      setClaimedIds(prev => {
+        const next = new Set(prev)
+        if (next.has(card.id)) next.delete(card.id)
+        else next.add(card.id)
+        return next
+      })
     } else {
-      setRound(r => r + 1)
-      setPhase('intro')
+      setKeywordId(prev => (prev === card.id ? null : card.id))
     }
   }
 
   function handleStop() {
-    setManualStop(!hit)
     setShowEnd(true)
   }
 
-  if (!keyword) return null
-
-  const activeCard = phase === 'active' ? roundCards.current[cardIdx] : null
+  function playAgain() {
+    setShowEnd(false)
+    setKeywordId(null)
+    setClaimedIds(new Set())
+    onBackToSettings()
+  }
 
   return (
     <div className="mode-screen">
@@ -87,11 +50,7 @@ function Target({ S, cards, onBackToSettings, onExit }) {
         <button className="nav-btn" onClick={onBackToSettings} aria-label="Settings">
           <Gear size={18} weight="fill" />
         </button>
-        <span className="topbar-counter">
-          {phase === 'intro'
-            ? `Round ${round + 1} of ${targetWords.length}`
-            : `${cardIdx + 1} of ${roundCards.current.length}`}
-        </span>
+        <span className="topbar-counter">{cards.length} cards</span>
         <button className="nav-btn" onClick={toggleFullscreen} aria-label="Toggle fullscreen">
           {isFullscreen ? <ArrowsIn size={18} weight="fill" /> : <ArrowsOut size={18} weight="fill" />}
         </button>
@@ -100,52 +59,43 @@ function Target({ S, cards, onBackToSettings, onExit }) {
         </button>
       </div>
 
-      {phase === 'intro' ? (
-        <div className="target-intro-body">
-          <div className="target-intro-label">The target is...</div>
-          <div className="target-intro-card-wrap">
-            {S.showImage && (
-              <div className="flash-img-wrap">
-                <img className="flash-img" src={keyword.image_url} alt={keyword.label} />
-              </div>
-            )}
-            {S.showWord && (
-              <FitText
-                text={keyword.label}
-                maxSize={S.showImage ? 220 : 320}
-                minSize={32}
-                className={`flash-word ${S.showImage ? 'flash-word-paired' : 'flash-word-solo'}`}
-              />
-            )}
-          </div>
-          <button className="target-start-btn" onClick={startRound}>Start Round</button>
+      <div className="target-grid-stage">
+        <div className="word-picker-grid">
+          {cards.map(card => {
+            const isKeyword = !isKaruta && keywordId === card.id
+            const isClaimed = isKaruta && claimedIds.has(card.id)
+            return (
+              <button
+                key={card.id}
+                className={`word-tile ${isKeyword ? 'selected' : ''} ${isClaimed ? 'claimed' : ''}`}
+                onClick={() => tapCard(card)}
+              >
+                <div className="word-tile-img">
+                  <img src={card.image_url} alt={card.label} />
+                </div>
+                {S.showWord && <div className="word-tile-label">{card.label}</div>}
+                {isClaimed && (
+  <div className="word-tile-badge">
+    <Check size={12} weight="fill" />
+  </div>
+)}
+{isKeyword && (
+  <div className="word-tile-badge-target">
+    <TargetIcon size={22} weight="fill" />
+  </div>
+)}
+              </button>
+            )
+          })}
         </div>
-      ) : (
-        <div className="flash-stage" onClick={targetNext}>
-          <div className={`flash-card ${hit ? 'is-target' : ''}`}>
-            {S.showImage && (
-              <div className="flash-img-wrap">
-                <img className="flash-img" src={activeCard.image_url} alt={activeCard.label} />
-              </div>
-            )}
-            {S.showWord && (
-              <FitText
-                text={activeCard.label}
-                maxSize={S.showImage ? 220 : 320}
-                minSize={32}
-                className={`flash-word ${S.showImage ? 'flash-word-paired' : 'flash-word-solo'}`}
-              />
-            )}
-          </div>
-        </div>
-      )}
+      </div>
 
       {showEnd && (
         <EndSheet
-          title={manualStop ? 'Stopped' : (isLastRound ? 'All done!' : `Round ${round + 1} finished!`)}
-          primaryLabel={manualStop ? 'Back to Settings' : (isLastRound ? 'Play Again' : 'Next Round')}
+          title="Stopped"
+          primaryLabel="Back to Settings"
           primaryClassName="end-btn-target"
-          onPrimary={manualStop ? onBackToSettings : nextRoundOrPlayAgain}
+          onPrimary={playAgain}
           onSecondary={onExit}
         />
       )}

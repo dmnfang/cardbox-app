@@ -1,61 +1,51 @@
-function TargetSettings({ S, updateS, cards }) {
-  const targetWords = S.targetWords || []
-
-  function isSelected(card) {
-    return targetWords.some(w => w.id === card.id)
-  }
-
-  function toggleWord(card) {
-    if (isSelected(card)) {
-      updateS({ targetWords: targetWords.filter(w => w.id !== card.id) })
-    } else {
-      updateS({ targetWords: [...targetWords, card] })
-    }
-  }
-
-  // Badge numbers follow grid position among currently-selected tiles,
-  // matching v1's renumberBadges() behavior after any deselection
-  function badgeNumber(card) {
-    const selectedInGridOrder = cards.filter(c => isSelected(c))
-    const pos = selectedInGridOrder.findIndex(c => c.id === card.id)
-    return pos === -1 ? null : pos + 1
-  }
-
-  const n = targetWords.length
-  const numRows = Math.ceil(cards.length / 3) || 1
+function TargetSettings({ S, updateS }) {
+  const isKaruta = S.targetGameType === 'karuta'
 
   return (
     <>
-      <div className="target-counter-text">
-        {n === 0 ? (
-          'Select at least 1 keyword to get started'
-        ) : (
-          <>
-            <strong>{n} target word{n > 1 ? 's' : ''}</strong> selected — <strong>{n} round{n > 1 ? 's' : ''}</strong> will be played
-          </>
-        )}
-      </div>
-      <div className="preview-area">
-        <span className="settings-label">Word List</span>
-        <div className="word-picker-grid" style={{ gridTemplateRows: `repeat(${numRows}, 1fr)` }}>
-          {cards.map(card => {
-            const selected = isSelected(card)
-            return (
-              <button
-                key={card.id}
-                className={`word-tile ${selected ? 'selected' : ''}`}
-                onClick={() => toggleWord(card)}
-              >
-                <div className="word-tile-img">
-                  <img src={card.image_url} alt={card.label} />
-                </div>
-                <div className="word-tile-label">{card.label}</div>
-                {selected && <div className="word-tile-badge">{badgeNumber(card)}</div>}
-              </button>
-            )
-          })}
+      <div className="settings-row">
+        <div className="settings-block">
+          <span className="settings-label">Game</span>
+          <div className="toggle-group">
+            <button
+              className={`toggle-pill ${!isKaruta ? 'active' : ''}`}
+              onClick={() => updateS({ targetGameType: 'keyword' })}
+            >
+              Keyword
+            </button>
+            <button
+              className={`toggle-pill ${isKaruta ? 'active' : ''}`}
+              onClick={() => updateS({ targetGameType: 'karuta' })}
+            >
+              Karuta
+            </button>
+          </div>
+        </div>
+        <div className="settings-block">
+          <span className="settings-label">Text</span>
+          <div className="toggle-group">
+            <button
+              className={`toggle-pill ${S.showWord ? 'active' : ''}`}
+              onClick={() => updateS({ showWord: true })}
+            >
+              On
+            </button>
+            <button
+              className={`toggle-pill ${!S.showWord ? 'active' : ''}`}
+              onClick={() => updateS({ showWord: false })}
+            >
+              Off
+            </button>
+          </div>
         </div>
       </div>
+
+      <div className="flip-info-text">
+        {isKaruta
+          ? 'Tap a card to mark it claimed/said — tap again to undo. Good for Karuta-style games.'
+          : 'Tap a card to highlight it as the keyword. Call out the words in any order, saying the keyword whenever you like.'}
+      </div>
+      <div style={{ flex: 1 }} />
     </>
   )
 }
