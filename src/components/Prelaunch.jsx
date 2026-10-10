@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { House, ArrowsOut, ArrowsIn, Lightning, Eye, Crosshair as TargetIcon, Ghost, DiceFive, Stack, Timer, Megaphone } from '@phosphor-icons/react'
+import { House, ArrowsOut, ArrowsIn, Lightning, Eye, Crosshair as TargetIcon, Ghost, DiceFive, Stack, Timer, Megaphone, MusicNotes } from '@phosphor-icons/react'
 import FlashSettings from './FlashSettings'
 import RevealSettings from './RevealSettings'
 import TargetSettings from './TargetSettings'
@@ -10,6 +10,7 @@ import SpellSettings from './SpellSettings'
 import EditCardsModal from './EditCardsModal'
 import { getActiveCards, getDeckCards } from '../lib/cards'
 import CallSettings from './CallSettings'
+import BeatSettings from './BeatSettings'
 
 const MODES = [
   { id: 'flash',  label: 'Flash',  icon: Lightning },
@@ -19,10 +20,11 @@ const MODES = [
   { id: 'roll',   label: 'Roll',   icon: DiceFive },
   { id: 'flip',   label: 'Flip',   icon: Stack },
   { id: 'spell',  label: 'Spell',  icon: Timer },
-  { id: 'call', label: 'Call', icon: Megaphone }
+  { id: 'call', label: 'Call', icon: Megaphone },
+  { id: 'beat', label: 'Beat', icon: MusicNotes }
 ]
 
-const IMPLEMENTED_MODES = ['flash', 'reveal', 'target', 'vanish', 'roll', 'flip', 'spell', 'call']
+const IMPLEMENTED_MODES = ['flash', 'reveal', 'target', 'vanish', 'roll', 'flip', 'spell', 'call', 'beat']
 
 function Prelaunch({ S, updateS, onBack, onLaunch }) {
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -129,6 +131,8 @@ function Prelaunch({ S, updateS, onBack, onLaunch }) {
             <SpellSettings S={S} updateS={updateS} />  
           ) : S.mode === 'call' ? (
             <CallSettings S={S} updateS={updateS} />
+          ) : S.mode === 'beat' ? (
+            <BeatSettings S={S} updateS={updateS} cards={activeCards} />
           ) : (
             <div className="settings-placeholder">
               {activeMode?.label} settings — coming soon

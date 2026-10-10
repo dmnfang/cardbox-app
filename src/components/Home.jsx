@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import {
   Lightning, Eye, Crosshair as TargetIcon, Ghost, DiceFive, Stack, Timer,
-  CheckFat as Check, ArrowsOut, ArrowsIn, User, XCircle, Megaphone,
+  CheckFat as Check, ArrowsOut, ArrowsIn, User, XCircle, Megaphone, MusicNotes,
 } from '@phosphor-icons/react'
 import { fetchCardboxLibrary } from '../lib/api'
 import logo from '../assets/logo.svg'
@@ -14,7 +14,8 @@ const MODES = [
   { id: 'roll',   label: 'Roll',   icon: DiceFive,   className: 'mode-btn-roll' },
   { id: 'flip',   label: 'Flip',   icon: Stack,      className: 'mode-btn-flip' },
   { id: 'spell',  label: 'Spell',  icon: Timer,      className: 'mode-btn-spell' },
-  { id: 'call', label: 'Call', icon: Megaphone, className: 'mode-btn-call' }
+  { id: 'call', label: 'Call', icon: Megaphone, className: 'mode-btn-call' },
+  { id: 'beat', label: 'Beat', icon: MusicNotes, className: 'mode-btn-beat' }
 ]
 
 const PREVIEW_COUNT = 6

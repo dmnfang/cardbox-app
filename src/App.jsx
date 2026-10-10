@@ -10,6 +10,7 @@ import Roll from './components/Roll'
 import Flip from './components/Flip'
 import Spell from './components/Spell'
 import Call from './components/Call'
+import Beat from './components/Beat'
 import { fetchDeckCards } from './lib/api'
 import { getSession, getProfile, onAuthStateChange } from './lib/auth'
 
@@ -42,6 +43,9 @@ function App() {
     spellLetterBonus: 5,
     spellLetterCase: 'upper',
     spellLastResult: null,
+    beatWords: 8,
+    beatSpeed: 'normal',
+    beatShowText: true,
   })
 
   const [session, setSession] = useState(null)
@@ -138,7 +142,11 @@ function App() {
 
   if (screen === 'call') {
   return <Call S={S} cards={pending.cards} onBackToSettings={handleBackToSettings} onExit={handleBackHome} />
-}
+  }
+
+  if (screen === 'beat') {
+    return <Beat S={S} cards={pending.cards} onBackToSettings={handleBackToSettings} onExit={handleBackHome} />
+  }
 
   if (screen === 'prelaunch') {
     return <Prelaunch S={S} updateS={updateS} onBack={handleBackHome} onLaunch={handleLaunchGame} />
