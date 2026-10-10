@@ -3,10 +3,13 @@ import { Gear, Stop, ArrowsOut, ArrowsIn, Eye, ArrowRight } from '@phosphor-icon
 import FitText from './FitText'
 import EndSheet from './EndSheet'
 import GuessModal from './GuessModal'
+import Flashlight from './Flashlight'
+import PixelCanvas, { PIXEL_LEVELS } from './PixelCanvas'
 import { shuffle } from '../lib/shuffle'
 import { spawnConfetti } from '../lib/confetti'
 
 const REV_SPEED = { 1: 1400, 2: 800, 3: 500 }
+const PIX_SPEED = { 1: 1200, 2: 700, 3: 400 }
 const SQ_COLORS = ['var(--flash)', 'var(--reveal)', 'var(--target)', 'var(--vanish)']
 const GRID_MAP = { '4x4': [4, 4], '6x4': [6, 4], '8x4': [8, 4], '10x4': [10, 4] }
 
@@ -15,6 +18,8 @@ function uniqueLabels(cards) {
 }
 
 function Reveal({ S, cards, onBackToSettings, onExit }) {
+  const mode = S.revealMode || 'tiles'
+
   // Reveal always shuffles, regardless of the cardOrder setting (that's Flash-only in v1)
   const revealCards = useRef(shuffle(cards))
   const [cols, rows] = GRID_MAP[S.revealGrid] || [4, 4]
@@ -22,6 +27,7 @@ function Reveal({ S, cards, onBackToSettings, onExit }) {
 
   const [idx, setIdx] = useState(0)
   const [gone, setGone] = useState(() => Array(total).fill(false))
+  const [pixLevel, setPixLevel] = useState(0)
   const [paused, setPaused] = useState(false)
   const [done, setDone] = useState(false)
   const [showEnd, setShowEnd] = useState(false)
@@ -48,32 +54,43 @@ function Reveal({ S, cards, onBackToSettings, onExit }) {
     else document.exitFullscreen()
   }
 
-  // Timer removes a random remaining square
+  // Timer: tiles removes a random square, pixelate steps the resolution up, flashlight has no timer
   useEffect(() => {
-    if (paused || done) return
-    timerRef.current = setInterval(() => {
-      setGone(prev => {
-        const remaining = prev.map((g, i) => (g ? -1 : i)).filter(i => i !== -1)
-        if (!remaining.length) return prev
-        const pick = remaining[Math.floor(Math.random() * remaining.length)]
-        const next = [...prev]
-        next[pick] = true
-        return next
-      })
-    }, REV_SPEED[S.revealSpeed] || 800)
+    if (paused || done || mode === 'flashlight') return
+    if (mode === 'pixelate') {
+      timerRef.current = setInterval(() => setPixLevel(l => l + 1), PIX_SPEED[S.revealSpeed] || 700)
+    } else {
+      timerRef.current = setInterval(() => {
+        setGone(prev => {
+          const remaining = prev.map((g, i) => (g ? -1 : i)).filter(i => i !== -1)
+          if (!remaining.length) return prev
+          const pick = remaining[Math.floor(Math.random() * remaining.length)]
+          const next = [...prev]
+          next[pick] = true
+          return next
+        })
+      }, REV_SPEED[S.revealSpeed] || 800)
+    }
     return () => clearInterval(timerRef.current)
-  }, [paused, done, idx, S.revealSpeed])
+  }, [paused, done, idx, S.revealSpeed, mode])
 
-  // All squares gone -> done
+  // Pixelate finished its last step -> mark everything revealed
+  useEffect(() => {
+    if (mode === 'pixelate' && pixLevel >= PIXEL_LEVELS.length) {
+      setGone(Array(total).fill(true))
+    }
+  }, [pixLevel, mode, total])
+
+  // All squares gone -> done (revealAll and pixelate also route through this)
   useEffect(() => {
     if (gone.length && gone.every(Boolean) && !done) {
       setDone(true)
     }
   }, [gone, done])
 
-  // Fit the squares overlay exactly to the rendered image bounds (image mode only)
+  // Fit the squares overlay exactly to the rendered image bounds (tiles + image only)
   useEffect(() => {
-    if (S.revealContent !== 'image') {
+    if (S.revealContent !== 'image' || mode !== 'tiles') {
       setSquareRect(null)
       return
     }
@@ -100,7 +117,7 @@ function Reveal({ S, cards, onBackToSettings, onExit }) {
     else if (img) img.onload = fit
     window.addEventListener('resize', fit)
     return () => window.removeEventListener('resize', fit)
-  }, [S.revealContent, idx])
+  }, [S.revealContent, mode, idx])
 
   function removeSquare(i) {
     setGone(prev => {
@@ -113,6 +130,7 @@ function Reveal({ S, cards, onBackToSettings, onExit }) {
 
   function revealAll() {
     clearInterval(timerRef.current)
+    setPixLevel(PIXEL_LEVELS.length)
     setGone(Array(total).fill(true))
   }
 
@@ -149,6 +167,7 @@ function Reveal({ S, cards, onBackToSettings, onExit }) {
     if (idx < revealCards.current.length - 1) {
       setIdx(i => i + 1)
       setGone(Array(total).fill(false))
+      setPixLevel(0)
       setDone(false)
       setPaused(false)
       setGuessWords(uniqueLabels(cards))
@@ -173,6 +192,7 @@ function Reveal({ S, cards, onBackToSettings, onExit }) {
   if (!card) return null
 
   const squaresReady = S.revealContent !== 'image' || squareRect !== null
+  const pixelating = mode === 'pixelate' && !done
 
   const squaresStyle = S.revealContent === 'image' && squareRect
     ? {
@@ -221,27 +241,49 @@ function Reveal({ S, cards, onBackToSettings, onExit }) {
       <div className="reveal-stage">
         <div className={`reveal-card ${done ? 'revealed' : ''}`} ref={cardRef}>
           <div className="reveal-content">
-  {S.revealContent === 'image' ? (
-    <>
-      <div className="reveal-img-wrap">
-        <img ref={imgRef} src={card.image_url} alt={card.label} />
-      </div>
-      {done && <div key={idx} className="reveal-label">{card.label}</div>}
-    </>
-  ) : (
-    <FitText text={card.label} maxSize={320} minSize={32} className="reveal-word" />
-  )}
-</div>
-          <div className="reveal-squares" style={squaresStyle} hidden={!squaresReady}>
-            {Array.from({ length: total }).map((_, i) => (
-              <div
-                key={`${idx}-${i}`}
-                className={`reveal-sq ${gone[i] ? 'gone' : ''}`}
-                style={{ background: SQ_COLORS[(i + Math.floor(i / cols)) % SQ_COLORS.length] }}
-                onClick={() => removeSquare(i)}
-              />
-            ))}
+            {S.revealContent === 'image' ? (
+              <>
+                <div className="reveal-img-wrap">
+                  {pixelating ? (
+                    <PixelCanvas card={card} content="image" level={pixLevel} />
+                  ) : (
+                    <img ref={imgRef} src={card.image_url} alt={card.label} />
+                  )}
+                </div>
+                {done && <div key={idx} className="reveal-label">{card.label}</div>}
+              </>
+            ) : pixelating ? (
+              <div className="reveal-pix-wrap">
+                <PixelCanvas card={card} content="word" level={pixLevel} />
+              </div>
+            ) : (
+              <FitText text={card.label} maxSize={320} minSize={32} className="reveal-word" />
+            )}
           </div>
+
+          {mode === 'tiles' && (
+            <div className="reveal-squares" style={squaresStyle} hidden={!squaresReady}>
+              {Array.from({ length: total }).map((_, i) => (
+                <div
+                  key={`${idx}-${i}`}
+                  className={`reveal-sq ${gone[i] ? 'gone' : ''}`}
+                  style={{ background: SQ_COLORS[(i + Math.floor(i / cols)) % SQ_COLORS.length] }}
+                  onClick={() => removeSquare(i)}
+                />
+              ))}
+            </div>
+          )}
+
+          {mode === 'flashlight' && (
+            <Flashlight
+              key={idx}
+              size={S.revealLightSize}
+              shape={S.revealLightShape}
+              speed={S.revealSpeed}
+              paused={paused}
+              revealed={done}
+            />
+          )}
         </div>
       </div>
 

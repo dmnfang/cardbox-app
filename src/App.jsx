@@ -48,6 +48,9 @@ function App() {
     beatSpeed: 'normal',
     beatShowText: true,
     callMode: 'bingo',
+    revealMode: 'tiles',        // 'tiles' | 'flashlight' | 'pixelate'
+    revealLightSize: 2,         // 1-3
+    revealLightShape: 'circle', // circle | star | square | triangle
   })
 
   const [session, setSession] = useState(null)
