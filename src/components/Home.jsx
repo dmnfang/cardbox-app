@@ -251,6 +251,7 @@ function Home({ selectedDecks, onToggleDeck, onClearDecks, onLaunch }) {
               <input
                 type="text"
                 className="search-input"
+                data-stable-viewport
                 placeholder="Search for a word or deck…"
                 value={query}
                 onChange={e => setQuery(e.target.value)}

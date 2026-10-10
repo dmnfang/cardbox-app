@@ -128,6 +128,7 @@
 
   --font-display: 'Fredoka', sans-serif;
   --font-ui:      'Nunito', sans-serif;
+  --font-card:    'Lexend', 'Nunito', sans-serif;
 
   --card-image-ratio: 17;
   --card-text-ratio:  3;
@@ -151,6 +152,7 @@ html, body, #root {
   width: 100%;
   height: 100vh;
   height: 100dvh;
+  height: var(--app-h, 100dvh);
 }
 
 html, body {
@@ -1154,7 +1156,7 @@ img {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-display);
+  font-family: var(--font-card);
   font-weight: 700;
   color: var(--text-primary);
   text-align: center;
@@ -1229,7 +1231,7 @@ img {
 
 .flash-grid-cell-word {
   flex-shrink: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-card);
   font-weight: 600;
   font-size: 16px;
   color: var(--text-primary);
@@ -1448,7 +1450,7 @@ img {
 
 .reveal-label {
   flex-shrink: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-card);
   font-size: 80px;
   font-weight: 700;
   color: var(--text-primary);
@@ -1474,7 +1476,7 @@ img {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-display);
+  font-family: var(--font-card);
   font-weight: 700;
   color: var(--text-primary);
   text-align: center;
@@ -1653,7 +1655,7 @@ img {
   border-radius: var(--r-lg);
   padding: 10px;
   text-align: center;
-  font-family: var(--font-display);
+  font-family: var(--font-card);
   font-weight: 600;
   color: var(--text-primary);
   transition: all 0.15s;
@@ -1860,7 +1862,7 @@ img {
 }
 
 .vanish-pcell-word {
-  font-family: var(--font-display);
+  font-family: var(--font-card);
   font-size: 11px;
   font-weight: 600;
   color: var(--text-primary);
@@ -1970,7 +1972,7 @@ img {
 }
 
 .vanish-cell-word {
-  font-family: var(--font-display);
+  font-family: var(--font-card);
   font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
@@ -2193,7 +2195,7 @@ img {
 .roll-card-img-wrap img { max-width: 100%; max-height: 100%; object-fit: contain; }
 
 .roll-card-word {
-  font-family: var(--font-display);
+  font-family: var(--font-card);
   font-size: 120px;
   font-weight: 700;
   color: var(--text-primary);
@@ -2469,7 +2471,7 @@ img {
 .edit-card-img img { max-width: 100%; max-height: 100%; object-fit: contain; }
 
 .edit-card-label {
-  font-family: var(--font-display);
+  font-family: var(--font-card);
   font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
@@ -2741,7 +2743,7 @@ img {
 
 .flip-cell-word {
   flex-shrink: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-card);
   font-size: 24px;
   font-weight: 600;
   color: var(--text-primary);
@@ -2767,7 +2769,7 @@ img {
 }
 
 .flip-back-label {
-  font-family: var(--font-display);
+  font-family: var(--font-card);
   font-size: 40px;
   font-weight: 700;
 }
@@ -3258,7 +3260,7 @@ img {
 
 .call-reel-word {
   flex-shrink: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-card);
   font-size: 28px;
   font-weight: 700;
   color: var(--text-primary);
