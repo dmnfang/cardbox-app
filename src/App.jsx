@@ -11,6 +11,7 @@ import Flip from './components/Flip'
 import Spell from './components/Spell'
 import Call from './components/Call'
 import Beat from './components/Beat'
+import LuckyDraw from './components/LuckyDraw'
 import { fetchDeckCards } from './lib/api'
 import { getSession, getProfile, onAuthStateChange } from './lib/auth'
 
@@ -46,6 +47,7 @@ function App() {
     beatWords: 8,
     beatSpeed: 'normal',
     beatShowText: true,
+    callMode: 'bingo',
   })
 
   const [session, setSession] = useState(null)
@@ -141,7 +143,8 @@ function App() {
   }
 
   if (screen === 'call') {
-  return <Call S={S} cards={pending.cards} onBackToSettings={handleBackToSettings} onExit={handleBackHome} />
+    const CallScreen = S.callMode === 'lucky' ? LuckyDraw : Call
+    return <CallScreen S={S} cards={pending.cards} onBackToSettings={handleBackToSettings} onExit={handleBackHome} />
   }
 
   if (screen === 'beat') {
