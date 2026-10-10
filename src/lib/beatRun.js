@@ -29,10 +29,35 @@ export const SPEEDS = [
   { id: 'speedup', label: 'Speeding Up', rate: 0.85 }, // round 1 rate; +0.1 each round
 ]
 
+// Speeding Up is a pre-rendered file (beat-track-5rounds-speedup.mp3) where each round is
+// already faster than the last. iPadOS stalls if playbackRate is changed mid-song, so we never do that:
+// that file plays at normal rate and we just use these per-round rates to find the count boundaries.
+export const SPEEDUP_RATES = [0.85, 0.95, 1.05, 1.15, 1.25] // count-in + round 1 use rate 0
+export const SPEEDUP_FIRST = 0.06 // track time (s) of count 1 in the speed-up file
+
+function blockRate(block) {
+  const round = block === 0 ? 0 : Math.floor((block - 1) / 2)
+  return SPEEDUP_RATES[Math.min(round, BEAT_ROUNDS - 1)]
+}
+
+// Same job as Math.floor((t - first) / interval), but for a track whose speed changes per round.
+export function speedupCountIdx(t, first, interval) {
+  let elapsed = t - first
+  if (elapsed < 0) return -1
+  const totalBlocks = 1 + BEAT_ROUNDS * 2
+  for (let block = 0; block < totalBlocks; block++) {
+    const countLen = interval / blockRate(block)
+    const blockLen = COUNTS_PER_BLOCK * countLen
+    if (elapsed < blockLen) return block * COUNTS_PER_BLOCK + Math.floor(elapsed / countLen)
+    elapsed -= blockLen
+  }
+  return BEAT_TOTAL_COUNTS
+}
+
 export function rateForRound(speedId, roundIdx) {
   const s = SPEEDS.find(x => x.id === speedId) || SPEEDS[2]
   if (s.id !== 'speedup') return s.rate
-  return Math.min(s.rate + 0.1 * roundIdx, 1.25)
+  return 1 // the speed-up file is pre-rendered, so it plays at normal rate
 }
 
 // Where are we in the song? countIdx is the whole number of counts since BEAT_FIRST (-1 = before it).

@@ -1,14 +1,16 @@
 import { useState, useRef, useEffect } from 'react'
 import { Gear, Stop, ArrowsOut, ArrowsIn } from '@phosphor-icons/react'
 import trackUrl from '../assets/beat-track-5rounds.mp3'
+import speedupTrackUrl from '../assets/beat-track-5rounds-speedup.mp3'
 import {
   BEAT_INTERVAL, BEAT_FIRST, BEAT_ROUNDS, BEAT_TOTAL_COUNTS, BEAT_FADE_AT_END,
+  SPEEDUP_FIRST, speedupCountIdx,
   rateForRound, buildBeatSequence, phaseOf, roundsCompleted,
 } from '../lib/beatRun'
 
-const PHASE_LABEL = { countin: 'Get ready…', memorize: 'Memorize', speak: 'Say it!', done: 'Done!' }
-
 function Beat({ S, cards, onBackToSettings, onExit }) {
+  const isSpeedup = S.beatSpeed === 'speedup'
+
   // All 5 rounds are dealt up front so nothing has to be built mid-song.
   const [sequences] = useState(() =>
     Array.from({ length: BEAT_ROUNDS }, () => buildBeatSequence(cards, S.beatWords))
@@ -24,7 +26,7 @@ function Beat({ S, cards, onBackToSettings, onExit }) {
       const f = parseFloat(p.get('beatFirst'))
       const c = parseFloat(p.get('beatCount'))
       return {
-        first: Number.isFinite(f) ? f : BEAT_FIRST,
+        first: Number.isFinite(f) ? f : (isSpeedup ? SPEEDUP_FIRST : BEAT_FIRST),
         interval: Number.isFinite(c) && c > 0 ? c : BEAT_INTERVAL,
       }
     })()
@@ -36,7 +38,7 @@ function Beat({ S, cards, onBackToSettings, onExit }) {
   const fadeRef = useRef(null)
 
   useEffect(() => {
-    const a = new Audio(trackUrl)
+    const a = new Audio(isSpeedup ? speedupTrackUrl : trackUrl)
     a.preload = 'auto'
     a.preservesPitch = true
     a.webkitPreservesPitch = true
@@ -73,11 +75,11 @@ function Beat({ S, cards, onBackToSettings, onExit }) {
     if (status !== 'playing') return
     const a = audioRef.current
     const tick = () => {
-      const idx = Math.floor((a.currentTime - tune.first) / tune.interval)
+      const idx = isSpeedup
+        ? speedupCountIdx(a.currentTime, tune.first, tune.interval)
+        : Math.floor((a.currentTime - tune.first) / tune.interval)
       if (idx !== lastIdxRef.current) {
         lastIdxRef.current = idx
-        const { phase, pos, round } = phaseOf(idx)
-        if (phase === 'memorize' && pos === 0) a.playbackRate = rateForRound(S.beatSpeed, round)
         setCountIdx(idx)
         if (idx >= BEAT_TOTAL_COUNTS) {
           setStatus('ended')
@@ -127,7 +129,6 @@ function Beat({ S, cards, onBackToSettings, onExit }) {
         </button>
 
         <div className="beat-header">
-          <span className="beat-phase">{status === 'ready' ? '' : PHASE_LABEL[phase]}</span>
           <div className="beat-pips" aria-label={`Round ${Math.min(done + 1, BEAT_ROUNDS)} of ${BEAT_ROUNDS}`}>
             {Array.from({ length: BEAT_ROUNDS }, (_, i) => (
               <span
