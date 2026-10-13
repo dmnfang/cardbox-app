@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { House, ArrowsOut, ArrowsIn, Lightning, Eye, Crosshair as TargetIcon, Ghost, DiceFive, Stack, Timer, Megaphone, MusicNotes } from '@phosphor-icons/react'
+import { House, ArrowsOut, ArrowsIn, Lightning, Eye, Crosshair as TargetIcon, Ghost, DiceFive, Stack, Timer, Megaphone, Coins, MusicNotes } from '@phosphor-icons/react'
 import FlashSettings from './FlashSettings'
 import RevealSettings from './RevealSettings'
 import TargetSettings from './TargetSettings'
@@ -8,9 +8,13 @@ import RollSettings from './RollSettings'
 import FlipSettings from './FlipSettings'
 import SpellSettings from './SpellSettings'
 import EditCardsModal from './EditCardsModal'
+import SoundControls from './SoundControls'
 import { getActiveCards, getDeckCards } from '../lib/cards'
+import { sound } from '../lib/sound'
 import CallSettings from './CallSettings'
 import BeatSettings from './BeatSettings'
+import BetSettings from './BetSettings'
+import { BET_LABEL } from '../lib/betConfig'
 
 const MODES = [
   { id: 'flash',  label: 'Flash',  icon: Lightning },
@@ -21,10 +25,11 @@ const MODES = [
   { id: 'flip',   label: 'Flip',   icon: Stack },
   { id: 'spell',  label: 'Spell',  icon: Timer },
   { id: 'call', label: 'Call', icon: Megaphone },
-  { id: 'beat', label: 'Beat', icon: MusicNotes }
+  { id: 'beat', label: 'Beat', icon: MusicNotes },
+  { id: 'bet', label: BET_LABEL, icon: Coins }
 ]
 
-const IMPLEMENTED_MODES = ['flash', 'reveal', 'target', 'vanish', 'roll', 'flip', 'spell', 'call', 'beat']
+const IMPLEMENTED_MODES = ['flash', 'reveal', 'target', 'vanish', 'roll', 'flip', 'spell', 'call', 'beat', 'bet']
 
 function Prelaunch({ S, updateS, onBack, onLaunch }) {
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -43,6 +48,11 @@ function Prelaunch({ S, updateS, onBack, onLaunch }) {
 
   function removeDeck(deckId) {
     updateS({ selectedDecks: S.selectedDecks.filter(d => d.id !== deckId) })
+  }
+
+  function openEditCards() {
+    sound.play('modalOpen')
+    setShowEditCards(true)
   }
 
   function handleSaveDisabledCards(disabledIds) {
@@ -77,16 +87,19 @@ function Prelaunch({ S, updateS, onBack, onLaunch }) {
           })}
         </div>
 
-        <button className="nav-btn" onClick={toggleFullscreen}>
-          {isFullscreen ? <ArrowsIn size={18} weight="fill" /> : <ArrowsOut size={18} weight="fill" />}
-        </button>
+        <div className="header-actions">
+          <SoundControls />
+          <button className="nav-btn" onClick={toggleFullscreen}>
+            {isFullscreen ? <ArrowsIn size={18} weight="fill" /> : <ArrowsOut size={18} weight="fill" />}
+          </button>
+        </div>
       </div>
 
       <div className="prelaunch-body">
         <div className="prelaunch-left">
           <span className="panel-title">Selected Decks</span>
           {S.selectedDecks.length > 0 && (
-            <button className="edit-cards-btn" onClick={() => setShowEditCards(true)}>
+            <button className="edit-cards-btn" data-sound="none" onClick={openEditCards}>
               Edit Cards
             </button>
           )}
@@ -133,6 +146,8 @@ function Prelaunch({ S, updateS, onBack, onLaunch }) {
             <CallSettings S={S} updateS={updateS} />
           ) : S.mode === 'beat' ? (
             <BeatSettings S={S} updateS={updateS} cards={activeCards} />
+          ) : S.mode === 'bet' ? (
+            <BetSettings S={S} updateS={updateS} />  
           ) : (
             <div className="settings-placeholder">
               {activeMode?.label} settings — coming soon

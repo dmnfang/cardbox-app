@@ -4,6 +4,10 @@ import FitText from './FitText'
 import EndSheet from './EndSheet'
 import { shuffle } from '../lib/shuffle'
 import { autoFlashGrid } from '../lib/flashGrid'
+import { sound } from '../lib/sound'
+
+const BACK_ZONE = 0.3          // left 30% of the card goes back, the rest advances
+const NAV_COOLDOWN_MS = 250    // ignore taps faster than this so a quick double-tap can't skip a card
 
 function Flash({ S, cards, onBackToSettings, onExit }) {
   const orderedCards = useRef(
@@ -20,6 +24,7 @@ function Flash({ S, cards, onBackToSettings, onExit }) {
   const [showEnd, setShowEnd] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const touchX = useRef(0)
+  const lastNavRef = useRef(0)
 
   const card = flashCards[idx]
 
@@ -34,13 +39,41 @@ function Flash({ S, cards, onBackToSettings, onExit }) {
     else document.exitFullscreen()
   }
 
+  function dismissGrid() {
+    sound.play('tap')
+    setShowGrid(false)
+  }
+
+  // true if enough time has passed since the last card change
+  function navAllowed() {
+    const now = performance.now()
+    if (now - lastNavRef.current < NAV_COOLDOWN_MS) return false
+    lastNavRef.current = now
+    return true
+  }
+
   function advance() {
-    if (idx < flashCards.length - 1) setIdx(i => i + 1)
-    else setShowEnd(true)
+    if (!navAllowed()) return
+    if (idx < flashCards.length - 1) {
+      sound.play('nextCard')
+      setIdx(i => i + 1)
+    } else {
+      setShowEnd(true) // EndSheet plays the finish fanfare
+    }
   }
 
   function back() {
-    if (idx > 0) setIdx(i => i - 1)
+    if (idx === 0) return
+    if (!navAllowed()) return
+    sound.play('nextCard', { rate: 0.85 }) // a touch lower so going back sounds different
+    setIdx(i => i - 1)
+  }
+
+  function handleStageClick(e) {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = (e.clientX - rect.left) / rect.width
+    if (x < BACK_ZONE) back()
+    else advance()
   }
 
   function handleStop() {
@@ -64,7 +97,7 @@ function Flash({ S, cards, onBackToSettings, onExit }) {
       if (showGrid) {
         if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') {
           e.preventDefault()
-          setShowGrid(false)
+          dismissGrid()
         }
         return
       }
@@ -102,7 +135,7 @@ function Flash({ S, cards, onBackToSettings, onExit }) {
       </div>
 
       {showGrid ? (
-        <div className="flash-grid-wrap" onClick={() => setShowGrid(false)}>
+        <div className="flash-grid-wrap" onClick={dismissGrid}>
           <div
             className="flash-grid"
             style={{ gridTemplateColumns: `repeat(${gridCols}, 1fr)`, gridTemplateRows: `repeat(${gridRows}, 1fr)` }}
@@ -127,7 +160,7 @@ function Flash({ S, cards, onBackToSettings, onExit }) {
       ) : (
         <div
           className="flash-stage"
-          onClick={advance}
+          onClick={handleStageClick}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >

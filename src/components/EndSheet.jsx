@@ -1,4 +1,11 @@
+import { useEffect } from 'react'
+import { sound } from '../lib/sound'
+
 function EndSheet({ title, primaryLabel = 'Play Again', primaryClassName, onPrimary, onSecondary }) {
+  useEffect(() => {
+    sound.play('allDone')
+  }, [])
+
   return (
     <div className="end-overlay">
       <div className="end-sheet">

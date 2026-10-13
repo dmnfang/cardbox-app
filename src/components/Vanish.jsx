@@ -5,6 +5,7 @@ import GuessModal from './GuessModal'
 import { shuffle } from '../lib/shuffle'
 import { spawnConfetti } from '../lib/confetti'
 import { autoVanishGrid, buildVanishPool } from '../lib/vanishGrid'
+import { sound } from '../lib/sound'
 
 const SHUFFLE_COLORS = ['var(--flash)', 'var(--reveal)', 'var(--target)', 'var(--vanish)']
 
@@ -32,6 +33,16 @@ function Vanish({ S, cards, onBackToSettings, onExit }) {
   const [manualStop, setManualStop] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const shuffleIntervalRef = useRef(null)
+  const soundTimers = useRef([])
+
+  // Delayed sounds are cancelled if the screen is left mid-shuffle
+  function later(fn, ms) {
+    soundTimers.current.push(setTimeout(fn, ms))
+  }
+  useEffect(() => () => {
+    clearInterval(shuffleIntervalRef.current)
+    soundTimers.current.forEach(clearTimeout)
+  }, [])
 
   useEffect(() => {
     const handler = () => setIsFullscreen(!!document.fullscreenElement)
@@ -45,15 +56,15 @@ function Vanish({ S, cards, onBackToSettings, onExit }) {
   }
 
   function startRound() {
-  const fresh = shuffle([...poolCards.current])
-  setGridCards(fresh)
-  setGhostIdxs([])
-  setFoundIdxs([])
-  setGuessWords(uniqueLabels(cards))
-  setDisabledWords([])
-  setPhase('study')
-  setCycleStep(0)
-}
+    const fresh = shuffle([...poolCards.current])
+    setGridCards(fresh)
+    setGhostIdxs([])
+    setFoundIdxs([])
+    setGuessWords(uniqueLabels(cards))
+    setDisabledWords([])
+    setPhase('study')
+    setCycleStep(0)
+  }
 
   useEffect(() => {
     startRound()
@@ -61,34 +72,38 @@ function Vanish({ S, cards, onBackToSettings, onExit }) {
   }, [])
 
   function doShuffle() {
-  const countAtTap = vanishCount
-  setPhase('shuffling')
-  let step = 0
-  setCycleStep(0)
-  shuffleIntervalRef.current = setInterval(() => {
-    step++
-    setCycleStep(step)
-    if (step >= 5) {
-      clearInterval(shuffleIntervalRef.current)
-      setTimeout(() => {
-        const reshuffled = shuffle([...poolCards.current])
-        setGridCards(reshuffled)
-        setGhostIdxs(shuffle(reshuffled.map((_, i) => i)).slice(0, countAtTap))
-        setPhase('guessing')
-      }, 200)
-    }
-  }, 200)
-}
+    const countAtTap = vanishCount
+    setPhase('shuffling')
+    sound.play('vanishShuffle')
+    let step = 0
+    setCycleStep(0)
+    shuffleIntervalRef.current = setInterval(() => {
+      step++
+      setCycleStep(step)
+      // the shuffle sound is 0.6s but the animation runs ~1.2s, so play a second pass halfway
+      if (step === 3) sound.play('vanishShuffle', { rate: 1.1 })
+      if (step >= 5) {
+        clearInterval(shuffleIntervalRef.current)
+        later(() => {
+          const reshuffled = shuffle([...poolCards.current])
+          setGridCards(reshuffled)
+          setGhostIdxs(shuffle(reshuffled.map((_, i) => i)).slice(0, countAtTap))
+          setPhase('guessing')
+        }, 200)
+      }
+    }, 200)
+  }
 
   function actionTap() {
     if (phase === 'study') doShuffle()
-    else if (phase === 'guessing') setShowGuess(true)
+    else if (phase === 'guessing') setShowGuess(true) // GuessModal plays its own open sound
   }
 
   function handleGuess(word) {
     const remaining = ghostIdxs.filter(i => !foundIdxs.includes(i))
     const match = remaining.find(i => gridCards[i].label.trim().toLowerCase() === word.trim().toLowerCase())
     if (match !== undefined) {
+      sound.play('correct')
       const newFound = [...foundIdxs, match]
       setFoundIdxs(newFound)
       setShowGuess(false)
@@ -96,10 +111,11 @@ function Vanish({ S, cards, onBackToSettings, onExit }) {
       spawnConfetti(['var(--flash)', 'var(--reveal)', 'var(--target)', 'var(--vanish)'])
       const allFound = ghostIdxs.every(i => newFound.includes(i))
       if (allFound) {
-        setTimeout(() => setShowRoundEnd(true), 1000)
+        setTimeout(() => setShowRoundEnd(true), 1000) // EndSheet plays the fanfare
       }
       return true
     }
+    // wrong-guess sound is played by GuessModal
     setDisabledWords(prev => [...prev, word])
     return false
   }
@@ -134,7 +150,7 @@ function Vanish({ S, cards, onBackToSettings, onExit }) {
         <button className="nav-btn" onClick={onBackToSettings} aria-label="Settings">
           <Gear size={18} weight="fill" />
         </button>
-        <button className="topbar-action topbar-action-vanish" onClick={actionTap}>
+        <button className="topbar-action topbar-action-vanish" data-sound="none" onClick={actionTap}>
           {phase === 'study' ? 'Shuffle' : 'Guess'}
         </button>
         <div className="vanish-count-stepper">

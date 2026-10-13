@@ -1,12 +1,18 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { sound } from '../lib/sound'
 
 function GuessModal({ title, words, disabledWords, accentClassName, onGuess, onClose }) {
   const [shakeWord, setShakeWord] = useState(null)
+
+  useEffect(() => {
+    sound.play('modalOpen')
+  }, [])
 
   function handleTap(word) {
     if (disabledWords.includes(word)) return
     const correct = onGuess(word)
     if (!correct) {
+      sound.play('wrong')
       setShakeWord(word)
       setTimeout(() => setShakeWord(null), 400)
     }

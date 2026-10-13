@@ -3,6 +3,7 @@ import { Gear, Stop, ArrowsOut, ArrowsIn, DiceFive, ArrowRight, ArrowLeft, Hand,
 import { GRID_MAP, buildSnakePath, weightedRandom, ROLL_OUTCOMES, ROLL_WEIGHTS, ROLL_POINT_OPTIONS, ROLL_COLORS } from '../lib/roll'
 import { shuffle } from '../lib/shuffle'
 import { spawnConfetti } from '../lib/confetti'
+import { sound } from '../lib/sound'
 
 function Roll({ S, cards, onBackToSettings, onExit }) {
   const [cols, rows] = GRID_MAP[S.rollGrid] || [4, 4]
@@ -32,6 +33,11 @@ function Roll({ S, cards, onBackToSettings, onExit }) {
     document.addEventListener('fullscreenchange', handler)
     return () => document.removeEventListener('fullscreenchange', handler)
   }, [])
+
+  // This screen has its own end modal (not EndSheet), so it plays the fanfare itself
+  useEffect(() => {
+    if (phase === 'end') sound.play('allDone')
+  }, [phase])
 
   function toggleFullscreen() {
     if (!document.fullscreenElement) document.documentElement.requestFullscreen()
@@ -64,6 +70,7 @@ function Roll({ S, cards, onBackToSettings, onExit }) {
     if (phase !== 'board') return
     const finalValue = Math.floor(Math.random() * 6) + 1
     setPhase('dieRolling')
+    sound.play('vanishShuffle', { rate: 1.25 }) // rattle for the ~0.9s roll
     let count = 0
     const interval = setInterval(() => {
       setDieValue(Math.floor(Math.random() * 6) + 1)
@@ -72,6 +79,7 @@ function Roll({ S, cards, onBackToSettings, onExit }) {
         clearInterval(interval)
         setDieValue(finalValue)
         setPhase('dieReady')
+        sound.play('cardFlip') // the die lands
       }
     }, 60)
   }
@@ -81,23 +89,27 @@ function Roll({ S, cards, onBackToSettings, onExit }) {
     setTimeout(() => animateMove(currentTeam, dieValue), 400)
   }
 
-  function animateMove(teamIdx, stepsRemaining) {
+  // stepNum counts hops so the pitch can climb a little as the token advances
+  function animateMove(teamIdx, stepsRemaining, stepNum = 0) {
     if (stepsRemaining === 0) {
       const card = getNextCard()
       setActiveCard(card)
       setPhase('card')
+      sound.play('modalOpen')
       return
     }
+    sound.play('tilePop', { rate: 0.9 + stepNum * 0.05 })
     setPositions(prev => {
       const next = [...prev]
       next[teamIdx] = (next[teamIdx] + 1) % total
       if (next[teamIdx] === 0) {
         setScores(s => { const ns = [...s]; ns[teamIdx] += 200; return ns })
         spawnConfetti(ROLL_COLORS)
+        sound.play('spellBonus') // passing the start square: +200
       }
       return next
     })
-    setTimeout(() => animateMove(teamIdx, stepsRemaining - 1), 800)
+    setTimeout(() => animateMove(teamIdx, stepsRemaining - 1, stepNum + 1), 800)
   }
 
   function gotIt() {
@@ -106,6 +118,7 @@ function Roll({ S, cards, onBackToSettings, onExit }) {
     resultDataRef.current = { points: targetPoints, outcome: outcome.type }
     setResultOutcome(outcome)
     setPhase('result')
+    sound.play('vanishShuffle', { rate: 1.3 }) // the points scramble for ~1.2s
     let count = 0
     const interval = setInterval(() => {
       setResultPoints(ROLL_POINT_OPTIONS[Math.floor(Math.random() * ROLL_POINT_OPTIONS.length)])
@@ -113,6 +126,9 @@ function Roll({ S, cards, onBackToSettings, onExit }) {
       if (count >= 15) {
         clearInterval(interval)
         setResultPoints(targetPoints)
+        // forward gets a small chime, back a soft low one, anything else stays silent
+        if (outcome.type === 'forward') sound.play('correct', { volume: 0.8 })
+        else if (outcome.type === 'back') sound.play('wrong', { volume: 0.6 })
       }
     }, 80)
   }
@@ -125,6 +141,7 @@ function Roll({ S, cards, onBackToSettings, onExit }) {
 
     if (outcome === 'forward' || outcome === 'back') {
       setTimeout(() => {
+        sound.play('tilePop', { rate: outcome === 'forward' ? 1.1 : 0.85 })
         setPositions(p => {
           const np = [...p]
           np[teamIdx] = outcome === 'forward' ? (np[teamIdx] + 1) % total : (np[teamIdx] - 1 + total) % total
@@ -185,7 +202,7 @@ function Roll({ S, cards, onBackToSettings, onExit }) {
             </div>
           ))}
         </div>
-        <button className="topbar-action topbar-action-roll" onClick={tapDie}>
+        <button className="topbar-action topbar-action-roll" data-sound="none" onClick={tapDie}>
           <DiceFive size={20} weight="fill" />
         </button>
         <button className="nav-btn" onClick={toggleFullscreen} aria-label="Toggle fullscreen">
@@ -273,7 +290,7 @@ function Roll({ S, cards, onBackToSettings, onExit }) {
               <img src={activeCard.image_url} alt={activeCard.label} />
             </div>
             <div className="roll-card-word">{activeCard.label}</div>
-            <button className="roll-got-it-btn" onClick={gotIt}>Got it!</button>
+            <button className="roll-got-it-btn" data-sound="none" onClick={gotIt}>Got it!</button>
           </div>
         </div>
       )}

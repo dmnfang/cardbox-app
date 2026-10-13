@@ -7,6 +7,9 @@ import {
   SPEEDUP_FIRST, speedupCountIdx,
   rateForRound, buildBeatSequence, phaseOf, roundsCompleted,
 } from '../lib/beatRun'
+import { sound } from '../lib/sound'
+
+const END_CHIME = true // soft chime after the music fades out when all rounds finish; set false for silence
 
 function Beat({ S, cards, onBackToSettings, onExit }) {
   const isSpeedup = S.beatSpeed === 'speedup'
@@ -36,6 +39,7 @@ function Beat({ S, cards, onBackToSettings, onExit }) {
   const lastIdxRef = useRef(-2)
   const rafRef = useRef(0)
   const fadeRef = useRef(null)
+  const finishedRef = useRef(false) // true only when the song ran all the way through (not Stop)
 
   useEffect(() => {
     const a = new Audio(isSpeedup ? speedupTrackUrl : trackUrl)
@@ -82,6 +86,7 @@ function Beat({ S, cards, onBackToSettings, onExit }) {
         lastIdxRef.current = idx
         setCountIdx(idx)
         if (idx >= BEAT_TOTAL_COUNTS) {
+          finishedRef.current = true
           setStatus('ended')
           if (BEAT_FADE_AT_END) fadeOutAudio()
           return
@@ -92,6 +97,13 @@ function Beat({ S, cards, onBackToSettings, onExit }) {
     rafRef.current = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(rafRef.current)
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status])
+
+  // Soft chime once the music has faded out (never over the track, never when Stop was pressed)
+  useEffect(() => {
+    if (status !== 'ended' || !finishedRef.current || !END_CHIME || !BEAT_FADE_AT_END) return
+    const t = setTimeout(() => sound.play('correct'), 1400)
+    return () => clearTimeout(t)
   }, [status])
 
   // Fade the music out after round 5, then stop it (the song itself keeps going past our last round).

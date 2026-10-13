@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Gear, Stop, ArrowsOut, ArrowsIn, CheckFat as Check, Crosshair as TargetIcon } from '@phosphor-icons/react'
 import EndSheet from './EndSheet'
+import { sound } from '../lib/sound'
 
 function Target({ S, cards, onBackToSettings, onExit }) {
   const isKaruta = S.targetGameType === 'karuta'
@@ -22,6 +23,10 @@ function Target({ S, cards, onBackToSettings, onExit }) {
 
   function tapCard(card) {
     if (isKaruta) {
+      const wasClaimed = claimedIds.has(card.id)
+      // Claiming gets the full select sound; un-claiming a tile gets a lighter, lower tap
+      if (wasClaimed) sound.play('tap', { rate: 0.8 })
+      else sound.play('targetSelect')
       setClaimedIds(prev => {
         const next = new Set(prev)
         if (next.has(card.id)) next.delete(card.id)
@@ -29,6 +34,9 @@ function Target({ S, cards, onBackToSettings, onExit }) {
         return next
       })
     } else {
+      const wasKeyword = keywordId === card.id
+      if (wasKeyword) sound.play('tap', { rate: 0.8 })
+      else sound.play('targetSelect')
       setKeywordId(prev => (prev === card.id ? null : card.id))
     }
   }
@@ -68,6 +76,7 @@ function Target({ S, cards, onBackToSettings, onExit }) {
               <button
                 key={card.id}
                 className={`word-tile ${isKeyword ? 'selected' : ''} ${isClaimed ? 'claimed' : ''}`}
+                data-sound="none"
                 onClick={() => tapCard(card)}
               >
                 <div className="word-tile-img">
@@ -75,15 +84,15 @@ function Target({ S, cards, onBackToSettings, onExit }) {
                 </div>
                 {S.showWord && <div className="word-tile-label">{card.label}</div>}
                 {isClaimed && (
-  <div className="word-tile-badge">
-    <Check size={12} weight="fill" />
-  </div>
-)}
-{isKeyword && (
-  <div className="word-tile-badge-target">
-    <TargetIcon size={22} weight="fill" />
-  </div>
-)}
+                  <div className="word-tile-badge">
+                    <Check size={12} weight="fill" />
+                  </div>
+                )}
+                {isKeyword && (
+                  <div className="word-tile-badge-target">
+                    <TargetIcon size={22} weight="fill" />
+                  </div>
+                )}
               </button>
             )
           })}

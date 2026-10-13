@@ -3,12 +3,14 @@ import { Gear, Stop, ArrowsOut, ArrowsIn, Clover, Minus, Plus } from '@phosphor-
 import EndSheet from './EndSheet'
 import { shuffle } from '../lib/shuffle'
 import { spawnConfetti } from '../lib/confetti'
+import { sound } from '../lib/sound'
 
 const MAX_LUCKY = 5
 const GRID_GAP = 12
 const DRAWN_GAP = 16
 const SHUFFLE_STEPS = 7
 const SHUFFLE_STEP_MS = 200
+const CARD_STAGGER_MS = 120
 const SHUFFLE_COLORS = [
   'var(--flash)', 'var(--reveal)', 'var(--target)', 'var(--vanish)',
   'var(--roll)', 'var(--flip)', 'var(--spell)', 'var(--call)',
@@ -58,6 +60,12 @@ function LuckyDraw({ S, cards, onBackToSettings, onExit }) {
   const intervalRef = useRef(null)
   const timeoutRef = useRef(null)
   const lastDrawnIds = useRef([])
+  const soundTimers = useRef([])
+
+  // Delayed sounds are cancelled if the screen is left mid-draw
+  function later(fn, ms) {
+    soundTimers.current.push(setTimeout(fn, ms))
+  }
 
   useEffect(() => {
     const handler = () => setIsFullscreen(!!document.fullscreenElement)
@@ -79,6 +87,7 @@ function LuckyDraw({ S, cards, onBackToSettings, onExit }) {
     return () => {
       clearInterval(intervalRef.current)
       clearTimeout(timeoutRef.current)
+      soundTimers.current.forEach(clearTimeout)
     }
   }, [])
 
@@ -100,10 +109,13 @@ function LuckyDraw({ S, cards, onBackToSettings, onExit }) {
     const n = luckyCount
     setPhase('shuffling')
     setCycleStep(0)
+    sound.play('vanishShuffle')
     let step = 0
     intervalRef.current = setInterval(() => {
       step++
       setCycleStep(step)
+      // the shuffle sound is 0.6s but the animation runs ~1.4s, so play a second pass partway
+      if (step === 4) sound.play('vanishShuffle', { rate: 1.1 })
       if (step >= SHUFFLE_STEPS) {
         clearInterval(intervalRef.current)
         timeoutRef.current = setTimeout(() => {
@@ -113,6 +125,10 @@ function LuckyDraw({ S, cards, onBackToSettings, onExit }) {
           setDrawKey(k => k + 1)
           setPhase('drawn')
           spawnConfetti(['var(--call)', 'var(--flash)', 'var(--reveal)', 'var(--spell)'])
+          // one pop per card, matching the staggered pop-in animation
+          picked.forEach((_, i) => {
+            later(() => sound.play('tilePop', { rate: [0.95, 1.1] }), i * CARD_STAGGER_MS)
+          })
         }, SHUFFLE_STEP_MS)
       }
     }, SHUFFLE_STEP_MS)
@@ -144,6 +160,7 @@ function LuckyDraw({ S, cards, onBackToSettings, onExit }) {
         </button>
         <button
           className="topbar-action topbar-action-call"
+          data-sound="none"
           onClick={doDraw}
           disabled={phase === 'shuffling' || cards.length === 0}
         >
@@ -191,7 +208,7 @@ function LuckyDraw({ S, cards, onBackToSettings, onExit }) {
                   style={{
                     width: `calc((100% - ${(layout.cols - 1) * DRAWN_GAP}px) / ${layout.cols})`,
                     height: `calc((100% - ${(layout.rows - 1) * DRAWN_GAP}px) / ${layout.rows})`,
-                    animationDelay: `${i * 120}ms`,
+                    animationDelay: `${i * CARD_STAGGER_MS}ms`,
                   }}
                 >
                   {S.showImage && (

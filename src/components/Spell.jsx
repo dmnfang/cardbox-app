@@ -2,8 +2,10 @@ import { useState, useRef, useEffect, useMemo } from 'react'
 import { Gear, Stop, ArrowsOut, ArrowsIn, Trophy } from '@phosphor-icons/react'
 import { buildSpellWords, isLetterChar, formatClock, ALPHABET } from '../lib/spellRun'
 import { spawnConfetti } from '../lib/confetti'
+import { sound } from '../lib/sound'
 
 const CONFETTI_COLORS = ['var(--flash)', 'var(--reveal)', 'var(--target)', 'var(--vanish)', 'var(--roll)', 'var(--flip)']
+const COUNTDOWN_FROM = 5 // tick once per second when this many seconds (or fewer) remain
 
 // Finished-all-words runs always outrank unfinished ones; within the same
 // outcome type, more time left / more words completed is better.
@@ -31,6 +33,7 @@ function Spell({ S, updateS, cards, onBackToSettings, onExit }) {
   const advanceTimeoutRef = useRef(null)
   const wrongFlashTimeoutRef = useRef(null)
   const bonusFlashTimeoutRef = useRef(null)
+  const bonusSoundTimeoutRef = useRef(null)
 
   const currentWord = spellWords.current[wordIdx]
   const wordChars = currentWord ? [...currentWord.label] : []
@@ -69,6 +72,14 @@ function Spell({ S, updateS, cards, onBackToSettings, onExit }) {
     return () => clearInterval(timerRef.current)
   }, [status])
 
+  // Countdown ticks for the last few seconds (pitch rises as time runs out)
+  useEffect(() => {
+    if (status !== 'playing') return
+    if (timeLeft > 0 && timeLeft <= COUNTDOWN_FROM) {
+      sound.play('pixelBlip', { rate: 1 + (COUNTDOWN_FROM - timeLeft) * 0.08, volume: 0.8 })
+    }
+  }, [timeLeft, status])
+
   useEffect(() => {
     if (status === 'timeUp' || status === 'allDone' || status === 'quit') {
       const result = {
@@ -79,6 +90,9 @@ function Spell({ S, updateS, cards, onBackToSettings, onExit }) {
       }
       updateS({ spellLastResult: result })
       setShowEnd(true)
+      // Fanfare only if they actually finished; a "time's up" gets the stop sound instead
+      if (status === 'allDone') sound.play('allDone')
+      else if (status === 'timeUp') sound.play('stopCard')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status])
@@ -88,6 +102,7 @@ function Spell({ S, updateS, cards, onBackToSettings, onExit }) {
       clearTimeout(advanceTimeoutRef.current)
       clearTimeout(wrongFlashTimeoutRef.current)
       clearTimeout(bonusFlashTimeoutRef.current)
+      clearTimeout(bonusSoundTimeoutRef.current)
     }
   }, [])
 
@@ -96,6 +111,7 @@ function Spell({ S, updateS, cards, onBackToSettings, onExit }) {
 
     const targetLetter = wordChars[currentPos].toUpperCase()
     if (letter !== targetLetter) {
+      sound.play('wrong', { volume: 0.5 })
       clearTimeout(wrongFlashTimeoutRef.current)
       setWrongFlashLetter(letter)
       wrongFlashTimeoutRef.current = setTimeout(() => setWrongFlashLetter(null), 400)
@@ -112,10 +128,18 @@ function Spell({ S, updateS, cards, onBackToSettings, onExit }) {
     bonusFlashTimeoutRef.current = setTimeout(() => setBonusFlash(null), 700)
 
     const allFilled = wordChars.every((ch, i) => !isLetterChar(ch) || nextFilled.has(i))
+    const isLastWord = wordIdx === spellWords.current.length - 1
+
+    // Letter sound: the word-complete chime replaces it on the final letter of a word
+    // (the very last word hands over to the end-of-round fanfare instead)
+    sound.play(allFilled && !isLastWord ? 'correct' : 'spellLetter')
+    // "+5s" cue lands just after the letter sound
+    clearTimeout(bonusSoundTimeoutRef.current)
+    bonusSoundTimeoutRef.current = setTimeout(() => sound.play('spellBonus', { volume: 0.8 }), 150)
+
     if (allFilled) {
       clearInterval(timerRef.current)
       spawnConfetti(CONFETTI_COLORS)
-      const isLastWord = wordIdx === spellWords.current.length - 1
       setStatus(isLastWord ? 'allDone' : 'wordComplete')
       if (!isLastWord) {
         advanceTimeoutRef.current = setTimeout(() => nextWord(), 900)
@@ -213,6 +237,7 @@ function Spell({ S, updateS, cards, onBackToSettings, onExit }) {
               <button
                 key={letter}
                 className={`spell-alpha-key ${wrongFlashLetter === letter ? 'wrong shake' : ''}`}
+                data-sound="none"
                 disabled={status !== 'playing'}
                 onClick={() => tapLetter(letter)}
               >

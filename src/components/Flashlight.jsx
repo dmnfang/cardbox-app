@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useId, useRef, useState } from 'react'
 
 export const LIGHT_SIZES = { 1: 0.22, 2: 0.34, 3: 0.5 }   // diameter as a fraction of the shorter side
 export const LIGHT_SPEEDS = { 1: 0.25, 2: 0.5, 3: 0.9 }   // shorter sides travelled per second
@@ -26,12 +26,13 @@ function Flashlight({ size = 2, shape = 'circle', speed = 2, paused = false, rev
   const [dim, setDim] = useState({ w: 0, h: 0 })
   const maskId = 'fl' + useId().replace(/:/g, '')
 
-  useEffect(() => {
+  // Measure before the first paint so the dark overlay is there from frame one
+  useLayoutEffect(() => {
     const el = rootRef.current
     if (!el) return
-    const ro = new ResizeObserver(([e]) => {
-      setDim({ w: Math.round(e.contentRect.width), h: Math.round(e.contentRect.height) })
-    })
+    const measure = () => setDim({ w: Math.round(el.clientWidth), h: Math.round(el.clientHeight) })
+    measure()
+    const ro = new ResizeObserver(measure)
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
@@ -48,6 +49,8 @@ function Flashlight({ size = 2, shape = 'circle', speed = 2, paused = false, rev
     })
     if (!posRef.current) posRef.current = rand()
     if (!targetRef.current) targetRef.current = rand()
+    // place the light right away instead of waiting for the first animation frame
+    gRef.current?.setAttribute('transform', `translate(${posRef.current.x} ${posRef.current.y})`)
 
     const pxPerSec = (LIGHT_SPEEDS[speed] || 0.5) * Math.min(w, h)
     let raf
@@ -91,7 +94,8 @@ function Flashlight({ size = 2, shape = 'circle', speed = 2, paused = false, rev
           <defs>
             <mask id={maskId} maskUnits="userSpaceOnUse" x="0" y="0" width={dim.w} height={dim.h}>
               <rect width={dim.w} height={dim.h} fill="#fff" />
-              <g ref={gRef}>{hole}</g>
+              {/* starts off-screen so the card is fully covered until the light is positioned */}
+              <g ref={gRef} transform="translate(-9999 -9999)">{hole}</g>
             </mask>
           </defs>
           <rect width={dim.w} height={dim.h} style={{ fill: 'var(--sand-900)' }} mask={`url(#${maskId})`} />

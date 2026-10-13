@@ -7,11 +7,13 @@ import Flashlight from './Flashlight'
 import PixelCanvas, { PIXEL_LEVELS } from './PixelCanvas'
 import { shuffle } from '../lib/shuffle'
 import { spawnConfetti } from '../lib/confetti'
+import { sound } from '../lib/sound'
 
 const REV_SPEED = { 1: 1400, 2: 800, 3: 500 }
 const PIX_SPEED = { 1: 1200, 2: 700, 3: 400 }
 const SQ_COLORS = ['var(--flash)', 'var(--reveal)', 'var(--target)', 'var(--vanish)']
 const GRID_MAP = { '4x4': [4, 4], '6x4': [6, 4], '8x4': [8, 4], '10x4': [10, 4] }
+const POP_RATE = [0.92, 1.08]
 
 function uniqueLabels(cards) {
   return [...new Set(cards.map(c => c.label))]
@@ -40,6 +42,7 @@ function Reveal({ S, cards, onBackToSettings, onExit }) {
   const timerRef = useRef(null)
   const imgRef = useRef(null)
   const cardRef = useRef(null)
+  const guessedRef = useRef(false) // true when the current card was revealed by a correct guess
 
   const card = revealCards.current[idx]
 
@@ -56,20 +59,26 @@ function Reveal({ S, cards, onBackToSettings, onExit }) {
 
   // Timer: tiles removes a random square, pixelate steps the resolution up, flashlight has no timer
   useEffect(() => {
-    if (paused || done || mode === 'flashlight') return
-    if (mode === 'pixelate') {
-      timerRef.current = setInterval(() => setPixLevel(l => l + 1), PIX_SPEED[S.revealSpeed] || 700)
-    } else {
-      timerRef.current = setInterval(() => {
-        setGone(prev => {
-          const remaining = prev.map((g, i) => (g ? -1 : i)).filter(i => i !== -1)
-          if (!remaining.length) return prev
-          const pick = remaining[Math.floor(Math.random() * remaining.length)]
-          const next = [...prev]
-          next[pick] = true
-          return next
-        })
-      }, REV_SPEED[S.revealSpeed] || 800)
+  if (paused || done || mode === 'flashlight') return
+  if (mode === 'pixelate') {
+    let n = 0
+    timerRef.current = setInterval(() => {
+      sound.tick({ freq: 800 + n * 110 }) // pitch climbs a little with each step
+      n++
+      setPixLevel(l => l + 1)
+    }, PIX_SPEED[S.revealSpeed] || 700)
+  } else {
+    timerRef.current = setInterval(() => {
+      sound.play('tilePop', { rate: POP_RATE })
+      setGone(prev => {
+        const remaining = prev.map((g, i) => (g ? -1 : i)).filter(i => i !== -1)
+        if (!remaining.length) return prev
+        const pick = remaining[Math.floor(Math.random() * remaining.length)]
+        const next = [...prev]
+        next[pick] = true
+        return next
+      })
+    }, REV_SPEED[S.revealSpeed] || 800)
     }
     return () => clearInterval(timerRef.current)
   }, [paused, done, idx, S.revealSpeed, mode])
@@ -87,6 +96,19 @@ function Reveal({ S, cards, onBackToSettings, onExit }) {
       setDone(true)
     }
   }, [gone, done])
+
+  // One place for the "card revealed" sound: celebration for a correct guess, swell otherwise
+  useEffect(() => {
+    if (!done) return
+    sound.play(guessedRef.current ? 'correct' : 'revealAll')
+  }, [done])
+
+  // Flashlight ambience while the light is hunting (quiet while the guess modal is open or the game has ended)
+  useEffect(() => {
+    if (mode !== 'flashlight' || done || paused || showEnd) return
+    sound.startLoop('flashlight')
+    return () => sound.stopLoop('flashlight')
+  }, [mode, done, paused, showEnd, idx])
 
   // Fit the squares overlay exactly to the rendered image bounds (tiles + image only)
   useEffect(() => {
@@ -120,6 +142,8 @@ function Reveal({ S, cards, onBackToSettings, onExit }) {
   }, [S.revealContent, mode, idx])
 
   function removeSquare(i) {
+    if (gone[i]) return
+    sound.play('tilePop', { rate: POP_RATE })
     setGone(prev => {
       if (prev[i]) return prev
       const next = [...prev]
@@ -147,6 +171,7 @@ function Reveal({ S, cards, onBackToSettings, onExit }) {
   function handleGuess(word) {
     const correct = card.label.trim().toLowerCase() === word.trim().toLowerCase()
     if (correct) {
+      guessedRef.current = true // the done effect plays the celebration
       setShowGuess(false)
       setDisabledWords([])
       revealAll()
@@ -154,17 +179,23 @@ function Reveal({ S, cards, onBackToSettings, onExit }) {
       setPaused(false)
       return true
     }
+    // wrong-guess sound is played by GuessModal
     setDisabledWords(prev => [...prev, word])
     return false
   }
 
   function actionTap() {
-    if (done) advance()
-    else revealAll()
+    if (done) {
+      sound.play('nextCard')
+      advance()
+    } else {
+      revealAll() // the done effect plays the reveal sound
+    }
   }
 
   function advance() {
     if (idx < revealCards.current.length - 1) {
+      guessedRef.current = false
       setIdx(i => i + 1)
       setGone(Array(total).fill(false))
       setPixLevel(0)
@@ -221,19 +252,25 @@ function Reveal({ S, cards, onBackToSettings, onExit }) {
         </button>
         <button
           className="topbar-action topbar-action-reveal"
+          data-sound="none"
           disabled={done || paused}
           onClick={openGuess}
         >
           Guess
         </button>
         <span className="topbar-counter">{idx + 1} of {revealCards.current.length}</span>
-        <button className="nav-btn" onClick={actionTap} aria-label={done ? 'Next card' : 'Reveal all'}>
+        <button
+          className="nav-btn"
+          data-sound="none"
+          onClick={actionTap}
+          aria-label={done ? 'Next card' : 'Reveal all'}
+        >
           {done ? <ArrowRight size={18} weight="fill" /> : <Eye size={18} weight="fill" />}
         </button>
         <button className="nav-btn" onClick={toggleFullscreen} aria-label="Toggle fullscreen">
           {isFullscreen ? <ArrowsIn size={18} weight="fill" /> : <ArrowsOut size={18} weight="fill" />}
         </button>
-        <button className="nav-btn" onClick={handleStop} aria-label="Stop">
+        <button className="nav-btn" data-sound="none" onClick={handleStop} aria-label="Stop">
           <Stop size={18} weight="fill" />
         </button>
       </div>
@@ -247,7 +284,7 @@ function Reveal({ S, cards, onBackToSettings, onExit }) {
                   {pixelating ? (
                     <PixelCanvas card={card} content="image" level={pixLevel} />
                   ) : (
-                    <img ref={imgRef} src={card.image_url} alt={card.label} />
+                    <img key={card.id} ref={imgRef} src={card.image_url} alt={card.label} />
                   )}
                 </div>
                 {done && <div key={idx} className="reveal-label">{card.label}</div>}

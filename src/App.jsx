@@ -11,9 +11,11 @@ import Flip from './components/Flip'
 import Spell from './components/Spell'
 import Call from './components/Call'
 import Beat from './components/Beat'
+import Bet from './components/Bet'
 import LuckyDraw from './components/LuckyDraw'
 import { fetchDeckCards } from './lib/api'
 import { getSession, getProfile, onAuthStateChange } from './lib/auth'
+import { installSound, sound } from './lib/sound'
 
 function App() {
   const [screen, setScreen] = useState('home')
@@ -51,11 +53,23 @@ function App() {
     revealMode: 'tiles',        // 'tiles' | 'flashlight' | 'pixelate'
     revealLightSize: 2,         // 1-3
     revealLightShape: 'circle', // circle | star | square | triangle
+    betTeams: 3,
+    betChoices: 8,
+    betShowText: true,
   })
 
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
+
+  // Sound: unlock audio on first tap + automatic UI click sounds
+  useEffect(() => installSound(), [])
+
+  // Menu music: plays on Home + Prelaunch, fades out for loading and games
+  useEffect(() => {
+    if (screen === 'home' || screen === 'prelaunch') sound.startLoop('lofi')
+    else sound.stopLoop('lofi')
+  }, [screen])
 
   useEffect(() => {
     getSession().then(s => {
@@ -152,6 +166,10 @@ function App() {
 
   if (screen === 'beat') {
     return <Beat S={S} cards={pending.cards} onBackToSettings={handleBackToSettings} onExit={handleBackHome} />
+  }
+
+  if (screen === 'bet') {
+    return <Bet S={S} cards={pending.cards} onBackToSettings={handleBackToSettings} onExit={handleBackHome} />
   }
 
   if (screen === 'prelaunch') {

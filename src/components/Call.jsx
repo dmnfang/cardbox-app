@@ -2,11 +2,13 @@ import { useState, useRef, useEffect } from 'react'
 import { Gear, Stop, Play, ArrowsOut, ArrowsIn } from '@phosphor-icons/react'
 import EndSheet from './EndSheet'
 import { shuffle } from '../lib/shuffle'
+import { sound } from '../lib/sound'
 
 const SLIDE_MS = 130
 const TICK_GAP_MS = 20
 const LANDING_DELAYS = [160, 190, 230, 280, 340, 410, 490, 580, 690] // deceleration steps
 const SETTLE_PAUSE_MS = 500
+const LANDING_TICKS = true // ratchet blips while the reel slows down; set to false to drop them
 
 function Call({ S, cards, onBackToSettings, onExit }) {
   const [pool, setPool] = useState(() => shuffle([...cards]))
@@ -27,6 +29,7 @@ function Call({ S, cards, onBackToSettings, onExit }) {
   const spinIntervalRef = useRef(null)
   const landingTimeoutRef = useRef(null)
   const viewportRef = useRef(null)
+  const spinSoundRef = useRef(null)
 
   useEffect(() => { poolRef.current = pool }, [pool])
 
@@ -50,12 +53,18 @@ function Call({ S, cards, onBackToSettings, onExit }) {
     return () => {
       clearInterval(spinIntervalRef.current)
       clearTimeout(landingTimeoutRef.current)
+      spinSoundRef.current?.stop(0.15)
     }
   }, [])
 
   function toggleFullscreen() {
     if (!document.fullscreenElement) document.documentElement.requestFullscreen()
     else document.exitFullscreen()
+  }
+
+  function stopSpinSound(fade = 0.25) {
+    spinSoundRef.current?.stop(fade)
+    spinSoundRef.current = null
   }
 
   // Draws from a shuffled sequence of the current pool, guaranteeing every
@@ -87,12 +96,14 @@ function Call({ S, cards, onBackToSettings, onExit }) {
     if (spinning || landing || pool.length === 0) return
     cycleRef.current = { order: shuffle([...poolRef.current]), idx: 0 }
     setSpinning(true)
+    spinSoundRef.current = sound.play('callSpin')
     spinIntervalRef.current = setInterval(() => advanceReel(), SLIDE_MS + TICK_GAP_MS)
   }
 
   function stopSpin() {
     if (!spinning) return
     clearInterval(spinIntervalRef.current)
+    stopSpinSound(0.25)
     setSpinning(false)
     setLanding(true)
 
@@ -102,11 +113,14 @@ function Call({ S, cards, onBackToSettings, onExit }) {
 
     function step(i) {
       advanceReel(i === queueStep ? finalCard : undefined)
+      if (LANDING_TICKS) sound.tick({ freq: 1500 - i * 90, volume: i === landStep ? 1.4 : 1 })
       if (i < landStep) {
         landingTimeoutRef.current = setTimeout(() => step(i + 1), LANDING_DELAYS[i + 1])
       } else {
         // finalCard has now shifted into the center frame
         setTimeout(() => {
+          const isLast = poolRef.current.length <= 1
+          if (!isLast) sound.play('correct') // the last card goes straight to the end fanfare
           setCalled(c => [...c, finalCard])
           setPool(p => {
             const next = p.filter(c => c.id !== finalCard.id)
@@ -128,6 +142,7 @@ function Call({ S, cards, onBackToSettings, onExit }) {
   function handleStop() {
     clearInterval(spinIntervalRef.current)
     clearTimeout(landingTimeoutRef.current)
+    stopSpinSound(0.15)
     setShowEnd(true)
   }
 
@@ -205,6 +220,7 @@ function Call({ S, cards, onBackToSettings, onExit }) {
 
           <button
             className={`call-spin-btn ${spinning ? 'stop' : ''}`}
+            data-sound="none"
             onClick={handleToggleSpin}
             disabled={landing || (pool.length === 0 && !spinning)}
           >

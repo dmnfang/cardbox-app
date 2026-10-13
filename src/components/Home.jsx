@@ -1,10 +1,13 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import {
   Lightning, Eye, Crosshair as TargetIcon, Ghost, DiceFive, Stack, Timer,
-  CheckFat as Check, ArrowsOut, ArrowsIn, User, XCircle, Megaphone, MusicNotes,
+  CheckFat as Check, ArrowsOut, ArrowsIn, User, XCircle, Megaphone, Coins, MusicNotes, 
 } from '@phosphor-icons/react'
 import { fetchCardboxLibrary } from '../lib/api'
+import { sound } from '../lib/sound'
+import SoundControls from './SoundControls'
 import logo from '../assets/logo.svg'
+import { BET_LABEL } from '../lib/betConfig'
 
 const MODES = [
   { id: 'flash',  label: 'Flash',  icon: Lightning,  className: 'mode-btn-flash' },
@@ -15,7 +18,8 @@ const MODES = [
   { id: 'flip',   label: 'Flip',   icon: Stack,      className: 'mode-btn-flip' },
   { id: 'spell',  label: 'Spell',  icon: Timer,      className: 'mode-btn-spell' },
   { id: 'call', label: 'Call', icon: Megaphone, className: 'mode-btn-call' },
-  { id: 'beat', label: 'Beat', icon: MusicNotes, className: 'mode-btn-beat' }
+  { id: 'beat', label: 'Beat', icon: MusicNotes, className: 'mode-btn-beat' },
+  { id: 'bet', label: BET_LABEL, icon: Coins, className: 'mode-btn-bet' },
 ]
 
 const PREVIEW_COUNT = 6
@@ -149,6 +153,11 @@ function Header({ isFullscreen, onToggleFullscreen, accountOpen, setAccountOpen,
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [setAccountOpen])
 
+  function toggleAccount() {
+    sound.play(accountOpen ? 'close' : 'modalOpen')
+    setAccountOpen(o => !o)
+  }
+
   return (
     <header className="app-header">
       <div className="brand">
@@ -156,11 +165,12 @@ function Header({ isFullscreen, onToggleFullscreen, accountOpen, setAccountOpen,
         <span className="brand-name">Cardbox</span>
       </div>
       <div className="header-actions">
+        <SoundControls />
         <button className="icon-btn" onClick={onToggleFullscreen} aria-label="Toggle fullscreen">
           {isFullscreen ? <ArrowsIn size={20} weight="fill" /> : <ArrowsOut size={20} weight="fill" />}
         </button>
         <div className="account-menu" ref={accountRef}>
-          <button className="icon-btn" onClick={() => setAccountOpen(o => !o)} aria-label="Account">
+          <button className="icon-btn" data-sound="none" onClick={toggleAccount} aria-label="Account">
             <User size={20} weight="fill" />
           </button>
           {accountOpen && (
