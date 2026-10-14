@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
-import { Gear, Stop, ArrowsOut, ArrowsIn, Trophy, Prohibit, Sparkle, TrendUp } from '@phosphor-icons/react'
+import { Gear, Stop, ArrowsOut, ArrowsIn, Trophy, Prohibit, Sparkle, Stack, TrendUp } from '@phosphor-icons/react'
 import { buildFlipGrid, buildTokenPool, drawFlipToken, FLIP_STOP, FLIP_GRID_SIZE, FLIP_MAX_SCORE, FLIP_MAX_SCORE_BONUS } from '../lib/flip'
 import { spawnConfetti } from '../lib/confetti'
 import { sound } from '../lib/sound'
 import LineFit from './LineFit'
+import { TEAM_COLORS } from '../lib/teamColors'
 
 const CONFETTI_COLORS = ['var(--flash)', 'var(--reveal)', 'var(--target)', 'var(--vanish)', 'var(--roll)']
 const FLIP_REVEAL_MS = 250 // the card face turns at about the halfway point of the 0.5s flip
@@ -131,12 +132,11 @@ function Flip({ S, cards, onBackToSettings, onExit }) {
         <div className="team-btns">
           {Array.from({ length: teamCount }).map((_, i) => (
             <div key={i} className={`team-btn ${i === currentTeam ? 'active-roll' : ''}`}>
-              <span className="team-btn-label">T{i + 1}</span>
+              <Stack className="team-icon" size={26} weight="fill" style={{ color: TEAM_COLORS[i] }} />
               <span className="team-btn-score">{scores[i]}</span>
             </div>
           ))}
         </div>
-        <span className="topbar-counter">Team {currentTeam + 1}'s turn</span>
         <button
           className={`topbar-toggle ${bonusPoints ? 'active' : ''}`}
           onClick={toggleBonus}
@@ -240,7 +240,7 @@ function Flip({ S, cards, onBackToSettings, onExit }) {
               {rankedScores.map((s, rank) => (
                 <div key={s.team} className="roll-end-row">
                   <div className="roll-end-rank">{rank === 0 ? <Trophy size={20} weight="fill" /> : rank + 1}</div>
-                  <div className="roll-end-team">Team {s.team}</div>
+                  <div className="roll-end-team"><Stack size={28} weight="fill" style={{ color: TEAM_COLORS[s.team - 1] }} /></div>
                   <div className="roll-end-score">{s.score} pts</div>
                 </div>
               ))}

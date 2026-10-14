@@ -742,7 +742,7 @@ img {
 }
 
 .modes-panel {
-  flex: 1;
+  flex: 1.25;
   min-width: 0;
   background: var(--surface-card);
   border: 2px solid var(--stroke-default);
@@ -768,9 +768,11 @@ img {
 }
 
 .modes-list {
-  display: flex;
+  display: grid;
   flex-direction: column;
-  gap: 16px;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-content: start;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -786,11 +788,11 @@ img {
   height: 64px;
   width: 100%;
   border-radius: var(--r-lg);
-  padding: 0 20px;
+  padding: 0 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   color: var(--text-primary);
   font-size: 16px;
   line-height: 24px;
@@ -2891,6 +2893,7 @@ img {
 }
 
 .spell-word-boxes {
+  height: 104px;
   flex-shrink: 0;
   display: flex;
   flex-wrap: wrap;
@@ -3755,23 +3758,31 @@ img {
 
 .bet-hint b { color: var(--text-primary); }
 
-.bet-results {
+.bet-slot {
   flex-shrink: 0;
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  align-items: flex-start;
 }
 
-.bet-result-row {
+.bet-results {
+  width: 100%;
+  display: grid;
+  gap: 8px;
+}
+
+.bet-result-pill {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  height: 44px;
+  padding: 0 14px;
   background: var(--surface-card);
   border-radius: var(--r-md);
-  padding: 8px 14px;
-  font-size: 16px;
-  font-weight: 800;
-  color: var(--text-primary);
 }
+
+.bet-hint .bet-team-coin { margin-right: 8px; }
+
+.bet-slot > * { flex: 1; min-width: 0; }
 
 .bet-result-delta {
   margin-left: auto;
@@ -3954,3 +3965,6 @@ img {
   text-align: center;
 }
 .line-fit > span { display: inline-block; }
+
+.team-btn .team-icon,
+.team-btn .bet-team-coin { margin: 0; }

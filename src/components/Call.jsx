@@ -1,15 +1,23 @@
 import { useState, useRef, useEffect } from 'react'
 import { Gear, Stop, Play, ArrowsOut, ArrowsIn } from '@phosphor-icons/react'
 import EndSheet from './EndSheet'
+import LineFit from './LineFit'
 import { shuffle } from '../lib/shuffle'
 import { sound } from '../lib/sound'
-import LineFit from './LineFit'
 
 const SLIDE_MS = 130
 const TICK_GAP_MS = 20
 const LANDING_DELAYS = [160, 190, 230, 280, 340, 410, 490, 580, 690] // deceleration steps
 const SETTLE_PAUSE_MS = 500
-const LANDING_TICKS = true // ratchet blips while the reel slows down; set to false to drop them
+const LANDING_TICKS = true // ticks that spread out as the wheel slows; set to false to drop them
+
+// Three different cards for the reel from what's left in the pool.
+// With a single card left the other frames stay empty instead of repeating it.
+function dealReel(pool) {
+  const p = shuffle([...pool])
+  if (p.length === 1) return { prev: null, current: p[0], next: null }
+  return { prev: p[0], current: p[1], next: p[2] || p[0] }
+}
 
 function Call({ S, cards, onBackToSettings, onExit }) {
   const [pool, setPool] = useState(() => shuffle([...cards]))
@@ -17,22 +25,26 @@ function Call({ S, cards, onBackToSettings, onExit }) {
   const [spinning, setSpinning] = useState(false)
   const [landing, setLanding] = useState(false)
   const [sliding, setSliding] = useState(false)
-  const [reel, setReel] = useState(() => {
-    const shuffled = shuffle([...cards])
-    return { prev: shuffled[0], current: shuffled[1] || shuffled[0], next: shuffled[2] || shuffled[0] }
-  })
+  const [reel, setReel] = useState(() => dealReel(cards))
   const [showEnd, setShowEnd] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [frameHeight, setFrameHeight] = useState(200)
 
   const poolRef = useRef(pool)
+  const reelRef = useRef(reel)
   const cycleRef = useRef({ order: [], idx: 0 })
   const spinIntervalRef = useRef(null)
   const landingTimeoutRef = useRef(null)
   const viewportRef = useRef(null)
   const spinSoundRef = useRef(null)
+  const timers = useRef([])
 
   useEffect(() => { poolRef.current = pool }, [pool])
+
+  // timeouts that are cancelled if the screen is left mid-spin
+  function later(fn, ms) {
+    timers.current.push(setTimeout(fn, ms))
+  }
 
   useEffect(() => {
     function measure() {
@@ -54,6 +66,7 @@ function Call({ S, cards, onBackToSettings, onExit }) {
     return () => {
       clearInterval(spinIntervalRef.current)
       clearTimeout(landingTimeoutRef.current)
+      timers.current.forEach(clearTimeout)
       spinSoundRef.current?.stop(0.15)
     }
   }, [])
@@ -68,34 +81,71 @@ function Call({ S, cards, onBackToSettings, onExit }) {
     spinSoundRef.current = null
   }
 
-  // Draws from a shuffled sequence of the current pool, guaranteeing every
-  // card comes up once before any repeats — reshuffles once exhausted.
-  function nextCycleCard() {
+  function applyReel(next) {
+    reelRef.current = next
+    setReel(next)
+  }
+
+  // Next card from a shuffled pass over the pool. Every card comes up once per pass, and
+  // a card that is already on screen (avoid) is skipped unless the pool is too small to avoid it.
+  function drawCard(avoid = []) {
     const cyc = cycleRef.current
+    const avoidIds = new Set(avoid.filter(Boolean).map(c => c.id))
+    const canAvoid = poolRef.current.length > avoidIds.size
     if (cyc.idx >= cyc.order.length) {
       cyc.order = shuffle([...poolRef.current])
       cyc.idx = 0
     }
-    const card = cyc.order[cyc.idx]
-    cyc.idx++
-    return card
+    if (canAvoid) {
+      let j = cyc.idx
+      while (j < cyc.order.length && avoidIds.has(cyc.order[j].id)) j++
+      if (j === cyc.order.length) {
+        // everything left in this pass is already on screen: start a fresh pass
+        cyc.order = shuffle([...poolRef.current])
+        cyc.idx = 0
+        j = 0
+        while (avoidIds.has(cyc.order[j].id)) j++
+      }
+      ;[cyc.order[cyc.idx], cyc.order[j]] = [cyc.order[j], cyc.order[cyc.idx]]
+    }
+    return cyc.order[cyc.idx++]
   }
 
-  function advanceReel(forcedNext) {
+  // forcedNext = the card to place on the bottom frame; extraAvoid = a card to keep off the reel for now
+  function advanceReel(forcedNext, extraAvoid) {
     setSliding(true)
-    setTimeout(() => {
-      setReel(r => ({
-        prev: r.current,
-        current: r.next,
-        next: forcedNext || nextCycleCard(),
-      }))
+    later(() => {
+      const r = reelRef.current
+      const next = forcedNext || drawCard([r.current, r.next, extraAvoid])
+      applyReel({ prev: r.current, current: r.next, next })
       setSliding(false)
     }, SLIDE_MS)
   }
 
+  function finishCall(card) {
+    const isLast = poolRef.current.length <= 1
+    if (!isLast) sound.play('correct') // the last card goes straight to the end fanfare
+    setCalled(c => [...c, card])
+    setPool(p => p.filter(c => c.id !== card.id))
+    setLanding(false)
+    if (isLast) later(() => setShowEnd(true), 400)
+  }
+
   function startSpin() {
-    if (spinning || landing || pool.length === 0) return
-    cycleRef.current = { order: shuffle([...poolRef.current]), idx: 0 }
+    if (spinning || landing || poolRef.current.length === 0) return
+    const remaining = poolRef.current
+
+    // one card left: nothing to spin, just call it
+    if (remaining.length === 1) {
+      setLanding(true)
+      applyReel({ prev: null, current: remaining[0], next: null })
+      sound.play('cardFlip')
+      later(() => finishCall(remaining[0]), SETTLE_PAUSE_MS)
+      return
+    }
+
+    applyReel(dealReel(remaining)) // called cards leave the wheel before it starts moving
+    cycleRef.current = { order: shuffle([...remaining]), idx: 0 }
     setSpinning(true)
     spinSoundRef.current = sound.play('callSpin')
     spinIntervalRef.current = setInterval(() => advanceReel(), SLIDE_MS + TICK_GAP_MS)
@@ -108,28 +158,19 @@ function Call({ S, cards, onBackToSettings, onExit }) {
     setSpinning(false)
     setLanding(true)
 
-    const finalCard = nextCycleCard()
+    const r = reelRef.current
+    const finalCard = drawCard([r.prev, r.current, r.next])
     const queueStep = LANDING_DELAYS.length - 2  // where finalCard becomes "next" (bottom peek)
     const landStep = LANDING_DELAYS.length - 1   // where it shifts into center
 
     function step(i) {
-      advanceReel(i === queueStep ? finalCard : undefined)
+      advanceReel(i === queueStep ? finalCard : undefined, i === queueStep ? undefined : finalCard)
       if (LANDING_TICKS) sound.tick({ freq: 1500 - i * 90, volume: i === landStep ? 1.4 : 1 })
       if (i < landStep) {
         landingTimeoutRef.current = setTimeout(() => step(i + 1), LANDING_DELAYS[i + 1])
       } else {
         // finalCard has now shifted into the center frame
-        setTimeout(() => {
-          const isLast = poolRef.current.length <= 1
-          if (!isLast) sound.play('correct') // the last card goes straight to the end fanfare
-          setCalled(c => [...c, finalCard])
-          setPool(p => {
-            const next = p.filter(c => c.id !== finalCard.id)
-            if (next.length === 0) setTimeout(() => setShowEnd(true), 400)
-            return next
-          })
-          setLanding(false)
-        }, SLIDE_MS + SETTLE_PAUSE_MS)
+        later(() => finishCall(finalCard), SLIDE_MS + SETTLE_PAUSE_MS)
       }
     }
     landingTimeoutRef.current = setTimeout(() => step(0), LANDING_DELAYS[0])
@@ -143,6 +184,7 @@ function Call({ S, cards, onBackToSettings, onExit }) {
   function handleStop() {
     clearInterval(spinIntervalRef.current)
     clearTimeout(landingTimeoutRef.current)
+    timers.current.forEach(clearTimeout)
     stopSpinSound(0.15)
     setShowEnd(true)
   }
@@ -154,7 +196,7 @@ function Call({ S, cards, onBackToSettings, onExit }) {
     setCalled([])
     setSpinning(false)
     setLanding(false)
-    setReel({ prev: shuffled[0], current: shuffled[1] || shuffled[0], next: shuffled[2] || shuffled[0] })
+    applyReel(dealReel(shuffled))
     onBackToSettings()
   }
 

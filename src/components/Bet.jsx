@@ -3,6 +3,7 @@ import { Gear, Stop, ArrowsOut, ArrowsIn, Trophy, Coins, Question } from '@phosp
 import { shuffle } from '../lib/shuffle'
 import { spawnConfetti } from '../lib/confetti'
 import { sound } from '../lib/sound'
+import { TEAM_COLORS } from '../lib/teamColors'
 import LineFit from './LineFit'
 import {
   START_COINS, REFILL_COINS,
@@ -10,7 +11,6 @@ import {
 } from '../lib/betMath'
 
 const CHOICES = 6               // cards on the board each round
-const TEAM_COLORS = ['var(--reveal)', 'var(--target)', 'var(--vanish)', 'var(--roll)', 'var(--flash)']
 const FLIP_REVEAL_MS = 250      // the mystery card face turns at about the halfway point of its 0.5s flip
 const CONFETTI_ON = true        // visual only, no extra sound
 
@@ -74,8 +74,6 @@ function Bet({ S, cards, onBackToSettings, onExit }) {
   }
 
   const revealed = phase === 'revealed'
-  const teamShort = i => (teamCount === 1 ? 'Class' : `T${i + 1}`)
-  const teamName = i => (teamCount === 1 ? 'Class' : `Team ${i + 1}`)
   const coinsLeft = t => coins[t] - totalPlaced(stakes[t]) // how many the team can still put down
 
   function placeCoin(cardId) {
@@ -129,8 +127,12 @@ function Bet({ S, cards, onBackToSettings, onExit }) {
   const cols = board.choices.length <= 4 ? 2 : 3
   const rows = Math.ceil(board.choices.length / cols)
 
+  // hint and results share one fixed-height slot, so the mystery card never changes size at the reveal
+  const resultRows = Math.ceil(teamCount / 2)
+  const slotHeight = Math.max(64, resultRows * 52 - 8)
+
   const ranked = coins
-    .map((c, i) => ({ label: teamName(i), coins: c }))
+    .map((c, i) => ({ team: i, coins: c }))
     .sort((a, b) => b.coins - a.coins)
 
   const activeLeft = coinsLeft(activeTeam)
@@ -147,8 +149,9 @@ function Bet({ S, cards, onBackToSettings, onExit }) {
               key={i}
               className={`team-btn ${i === activeTeam ? 'active-roll' : ''}`}
               onClick={() => setActiveTeam(i)}
+              aria-label={`Team ${i + 1}`}
             >
-              <span className="team-btn-label">{teamCoin(i, 26)}{teamShort(i)}</span>
+              {teamCoin(i, 28)}
               <span className="team-btn-score">{coins[i]}</span>
             </button>
           ))}
@@ -183,25 +186,29 @@ function Bet({ S, cards, onBackToSettings, onExit }) {
             </div>
           </div>
 
-          {revealed ? (
-            <div className="bet-results">
-              {deltas.map((d, t) => (
-                <div key={t} className="bet-result-row">
-                  {teamCoin(t, 26)}
-                  {teamShort(t)}
-                  <span className={`bet-result-delta ${d > 0 ? 'up' : d < 0 ? 'down' : 'zero'}`}>
-                    {d > 0 ? `+${d}` : d}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="bet-hint">
-              <b>{teamCoin(activeTeam, 20)}{teamShort(activeTeam)}</b>{' '}
-              has {activeLeft} {activeLeft === 1 ? 'coin' : 'coins'} left to place.
-              Up to {maxCards} cards each. Tap a coin to take it back.
-            </div>
-          )}
+          <div className="bet-slot" style={{ height: slotHeight }}>
+            {revealed ? (
+              <div
+                className="bet-results"
+                style={{ gridTemplateColumns: teamCount === 1 ? '1fr' : '1fr 1fr' }}
+              >
+                {deltas.map((d, t) => (
+                  <div key={t} className="bet-result-pill">
+                    {teamCoin(t, 28)}
+                    <span className={`bet-result-delta ${d > 0 ? 'up' : d < 0 ? 'down' : 'zero'}`}>
+                      {d > 0 ? `+${d}` : d}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bet-hint">
+                {teamCoin(activeTeam, 20)}
+                <b>{activeLeft} {activeLeft === 1 ? 'coin' : 'coins'} left to place.</b>{' '}
+                Up to {maxCards} cards each. Tap a coin to take it back.
+              </div>
+            )}
+          </div>
 
           <button className="bet-main-btn" onClick={revealed ? nextRound : reveal}>
             {revealed ? 'Next Round' : 'Reveal'}
@@ -257,9 +264,9 @@ function Bet({ S, cards, onBackToSettings, onExit }) {
             <div className="roll-end-title">Game Over!</div>
             <div className="roll-end-list">
               {ranked.map((r, rank) => (
-                <div key={r.label} className="roll-end-row">
+                <div key={r.team} className="roll-end-row">
                   <div className="roll-end-rank">{rank === 0 ? <Trophy size={20} weight="fill" /> : rank + 1}</div>
-                  <div className="roll-end-team">{r.label}</div>
+                  <div className="roll-end-team">{teamCoin(r.team, 30)}</div>
                   <div className="roll-end-score">{r.coins} coins</div>
                 </div>
               ))}
