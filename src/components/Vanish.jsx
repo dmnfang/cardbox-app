@@ -6,6 +6,7 @@ import { shuffle } from '../lib/shuffle'
 import { spawnConfetti } from '../lib/confetti'
 import { autoVanishGrid, buildVanishPool } from '../lib/vanishGrid'
 import { sound } from '../lib/sound'
+import LineFit from './LineFit'
 
 const SHUFFLE_COLORS = ['var(--flash)', 'var(--reveal)', 'var(--target)', 'var(--vanish)']
 
@@ -220,7 +221,7 @@ function Vanish({ S, cards, onBackToSettings, onExit }) {
                         <div className="vanish-cell-img">
                           <img src={card.image_url} alt={card.label} />
                         </div>
-                        {S.vanishShowText && <div className="vanish-cell-word">{card.label}</div>}
+                        {S.vanishShowText && <LineFit text={card.label} max={16} min={10} className="vanish-cell-word" />}
                       </>
                     )}
                   </div>

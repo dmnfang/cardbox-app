@@ -3,6 +3,7 @@ import { Gear, Stop, Play, ArrowsOut, ArrowsIn } from '@phosphor-icons/react'
 import EndSheet from './EndSheet'
 import { shuffle } from '../lib/shuffle'
 import { sound } from '../lib/sound'
+import LineFit from './LineFit'
 
 const SLIDE_MS = 130
 const TICK_GAP_MS = 20
@@ -210,7 +211,7 @@ function Call({ S, cards, onBackToSettings, onExit }) {
                           <img src={card.image_url} alt={card.label} />
                         </div>
                       )}
-                      {S.showWord && <div className="call-reel-word">{card.label}</div>}
+                      {S.showWord && <LineFit text={card.label} max={28} min={14} className="call-reel-word" />}
                     </div>
                   )}
                 </div>

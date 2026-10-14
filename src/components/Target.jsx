@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Gear, Stop, ArrowsOut, ArrowsIn, CheckFat as Check, Crosshair as TargetIcon } from '@phosphor-icons/react'
 import EndSheet from './EndSheet'
 import { sound } from '../lib/sound'
+import LineFit from './LineFit'
 
 function Target({ S, cards, onBackToSettings, onExit }) {
   const isKaruta = S.targetGameType === 'karuta'
@@ -82,7 +83,7 @@ function Target({ S, cards, onBackToSettings, onExit }) {
                 <div className="word-tile-img">
                   <img src={card.image_url} alt={card.label} />
                 </div>
-                {S.showWord && <div className="word-tile-label">{card.label}</div>}
+                {S.showWord && <LineFit text={card.label} max={16} min={10} className="word-tile-label" />}
                 {isClaimed && (
                   <div className="word-tile-badge">
                     <Check size={12} weight="fill" />

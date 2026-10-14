@@ -46,7 +46,7 @@ function App() {
     spellLetterBonus: 5,
     spellLetterCase: 'upper',
     spellLastResult: null,
-    beatWords: 8,
+    beatWords: 2,
     beatSpeed: 'normal',
     beatShowText: true,
     callMode: 'bingo',

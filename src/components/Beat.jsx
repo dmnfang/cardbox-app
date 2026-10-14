@@ -8,6 +8,7 @@ import {
   rateForRound, buildBeatSequence, phaseOf, roundsCompleted,
 } from '../lib/beatRun'
 import { sound } from '../lib/sound'
+import LineFit from './LineFit'
 
 const END_CHIME = true // soft chime after the music fades out when all rounds finish; set false for silence
 
@@ -175,7 +176,7 @@ function Beat({ S, cards, onBackToSettings, onExit }) {
                   <div className="beat-card-img">
                     <img src={card.image_url} alt={card.label} />
                   </div>
-                  {S.beatShowText && <div className="beat-card-word">{card.label}</div>}
+                  {S.beatShowText && <LineFit text={card.label} max={32} min={14} className="beat-card-word" />}
                 </div>
               )
             })}

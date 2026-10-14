@@ -4,6 +4,7 @@ import EndSheet from './EndSheet'
 import { shuffle } from '../lib/shuffle'
 import { spawnConfetti } from '../lib/confetti'
 import { sound } from '../lib/sound'
+import LineFit from './LineFit'
 
 const MAX_LUCKY = 5
 const GRID_GAP = 12
@@ -216,7 +217,7 @@ function LuckyDraw({ S, cards, onBackToSettings, onExit }) {
                       <img src={card.image_url} alt={card.label} />
                     </div>
                   )}
-                  {S.showWord && <div className="lucky-card-word">{card.label}</div>}
+                  {S.showWord && <LineFit text={card.label} max={64} min={20} className="lucky-card-word" />}
                 </div>
               ))}
             </div>
@@ -242,7 +243,7 @@ function LuckyDraw({ S, cards, onBackToSettings, onExit }) {
                           <img src={card.image_url} alt={card.label} />
                         </div>
                       )}
-                      {S.showWord && <div className="vanish-cell-word">{card.label}</div>}
+                      {S.showWord && <LineFit text={card.label} max={16} min={10} className="vanish-cell-word" />}
                     </div>
                   ))}
             </div>

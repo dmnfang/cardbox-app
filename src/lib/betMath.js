@@ -1,18 +1,22 @@
-export const START_COINS = 4
+export const START_COINS = 5
 export const REFILL_COINS = 2
-export const MAX_CARDS_PER_TEAM = 2
+export const MAX_CARDS_PER_TEAM = 5
 export const WIN_MULTIPLIER = 2
 
 // stakes for one team = { cardId: coinCount }
 export const totalPlaced = stakes => Object.values(stakes).reduce((a, b) => a + b, 0)
 
 // Can this team put one more coin on this card?
-export function canPlace(coins, stakes, cardId) {
-  if (totalPlaced(stakes) >= coins) return false                                // out of coins
+// maxCards = how many different cards a team may spread coins over
+export function canPlace(coins, stakes, cardId, maxCards = MAX_CARDS_PER_TEAM) {
+  if (totalPlaced(stakes) >= coins) return false                                  // out of coins
   const alreadyOnCard = (stakes[cardId] || 0) > 0
-  if (!alreadyOnCard && Object.keys(stakes).length >= MAX_CARDS_PER_TEAM) return false // a third card
+  if (!alreadyOnCard && Object.keys(stakes).length >= maxCards) return false      // one card too many
   return true
 }
+
+// Most different cards a team may use on a board: never all of them, so one card always stays uncovered
+export const maxCardsFor = choiceCount => Math.max(1, Math.min(MAX_CARDS_PER_TEAM, choiceCount - 1))
 
 export function putCoin(stakes, cardId) {
   return { ...stakes, [cardId]: (stakes[cardId] || 0) + 1 }

@@ -1913,7 +1913,6 @@ img {
   font-weight: 400;
   color: var(--text-secondary);
   flex-shrink: 0;
-  margin-bottom: 8px;
 }
 
 /* ============================================
@@ -3650,15 +3649,6 @@ img {
   color: var(--bet);
 }
 
-.bet-team-dot {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  margin-right: 8px;
-  vertical-align: -1px;
-}
-
 /* layout */
 .bet-body {
   flex: 1;
@@ -3873,29 +3863,94 @@ img {
   transition: opacity 0.2s ease;
 }
 
-/* coin chips: just the number in a circle */
+.bet-team-coin { flex-shrink: 0; margin-right: 6px; vertical-align: -6px; }
+
+.bet-scope .team-btn-score { color: var(--text-primary); }
+
+/* mystery card: neutral border, orange question mark only */
+.bet-face-hidden {
+  background: var(--surface-card);
+  border: 2px solid var(--stroke-default);
+  color: var(--bet);
+}
+.bet-face-shown {
+  background: var(--surface-card);
+  border: 2px solid var(--stroke-default);
+  transform: rotateY(180deg);
+}
+
+/* coin chips: their own row at the bottom of each card, overlapping like a stack */
 .bet-chips {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  right: 10px;
+  flex-shrink: 0;
+  height: 48px;
+  max-width: 100%;
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  pointer-events: none;
+  align-items: center;
+  justify-content: center;
 }
 
 .bet-chip {
-  pointer-events: auto;
-  width: 60px;
-  height: 60px;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  margin-left: -10px;
   border-radius: 50%;
+  border: 2px solid var(--surface-card);
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text-primary);
   font-family: var(--font-display);
-  font-size: 32px;
+  font-size: 24px;
   font-weight: 700;
   cursor: pointer;
 }
+
+.bet-chip:first-child { margin-left: 0; }
+
+/* ============================================
+   VIEWPORT POLISH
+   ============================================ */
+
+/* Large action buttons are 56px everywhere (header, toggle and icon buttons stay at 40) */
+.mode-btn      { height: 56px; }
+.launch-btn    { height: 56px; }
+.call-spin-btn { height: 56px; }
+
+/* Team buttons: just "T1" + score, sized to their content */
+.team-btn { width: auto; min-width: 84px; padding: 0 12px; }
+
+/* Prelaunch top bar: icon-only mode pills below 1500px wide (the selected one keeps its label) */
+@media (max-width: 1499px) {
+  .mode-toggle-pill:not(.active) .mode-toggle-label { display: none; }
+  .mode-toggle-pill:not(.active) { padding: 0 12px; }
+  .mode-toggle-group { gap: 8px; }
+}
+
+/* Flip: question/answer text scales with the screen instead of staying at 48px */
+.flip-scaffold-text { font-size: clamp(30px, 2.6vw, 48px); }
+.flip-scaffold-turn-score-value { font-size: clamp(40px, 3.6vw, 56px); }
+
+/* Spell: letter boxes shrink so long words and phrases stay on one row */
+.spell-word-boxes { flex-wrap: nowrap; width: 100%; }
+.spell-letter-box {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 88px;
+  width: auto;
+  height: auto;
+  aspect-ratio: 88 / 104;
+  container-type: inline-size;
+}
+.spell-letter-box > span { font-size: 55cqw; line-height: 1; }
+.spell-word-space { flex: 0 1 28px; width: auto; min-width: 0; }
+
+/* One-line labels that shrink to fit (see LineFit.jsx) */
+.line-fit {
+  width: 100%;
+  flex-shrink: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-align: center;
+}
+.line-fit > span { display: inline-block; }

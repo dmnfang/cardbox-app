@@ -81,7 +81,7 @@ function Prelaunch({ S, updateS, onBack, onLaunch }) {
                 onClick={() => updateS({ mode: m.id })}
               >
                 <Icon size={20} weight="fill" />
-                {m.label}
+                <span className="mode-toggle-label">{m.label}</span>
               </button>
             )
           })}

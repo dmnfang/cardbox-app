@@ -3,6 +3,7 @@ import { Gear, Stop, ArrowsOut, ArrowsIn, Trophy, Prohibit, Sparkle, TrendUp } f
 import { buildFlipGrid, buildTokenPool, drawFlipToken, FLIP_STOP, FLIP_GRID_SIZE, FLIP_MAX_SCORE, FLIP_MAX_SCORE_BONUS } from '../lib/flip'
 import { spawnConfetti } from '../lib/confetti'
 import { sound } from '../lib/sound'
+import LineFit from './LineFit'
 
 const CONFETTI_COLORS = ['var(--flash)', 'var(--reveal)', 'var(--target)', 'var(--vanish)', 'var(--roll)']
 const FLIP_REVEAL_MS = 250 // the card face turns at about the halfway point of the 0.5s flip
@@ -130,7 +131,7 @@ function Flip({ S, cards, onBackToSettings, onExit }) {
         <div className="team-btns">
           {Array.from({ length: teamCount }).map((_, i) => (
             <div key={i} className={`team-btn ${i === currentTeam ? 'active-roll' : ''}`}>
-              <span className="team-btn-label">Team {i + 1}</span>
+              <span className="team-btn-label">T{i + 1}</span>
               <span className="team-btn-score">{scores[i]}</span>
             </div>
           ))}
@@ -206,7 +207,7 @@ function Flip({ S, cards, onBackToSettings, onExit }) {
                       <div className="flip-cell-img">
                         <img src={card.image_url} alt={card.label} />
                       </div>
-                      {S.flipShowText && <div className="flip-cell-word">{card.label}</div>}
+                      {S.flipShowText && <LineFit text={card.label} max={24} min={12} className="flip-cell-word" />}
                     </div>
                     <div className={`flip-card-face flip-card-back ${token === FLIP_STOP ? 'flip-card-back-stop' : ''}`}>
                       {isFlipped && (

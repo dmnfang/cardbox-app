@@ -203,7 +203,7 @@ function Spell({ S, updateS, cards, onBackToSettings, onExit }) {
                   const displayCh = ch.toUpperCase()
                   return (
                     <div key={i} className={`spell-letter-box ${isFilled ? 'filled' : ''} ${isActive ? 'active' : ''}`}>
-                      {isFilled ? (isUpper ? displayCh : displayCh.toLowerCase()) : ''}
+                      <span>{isFilled ? (isUpper ? displayCh : displayCh.toLowerCase()) : ''}</span>
                     </div>
                   )
                 })}

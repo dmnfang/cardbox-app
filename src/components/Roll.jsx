@@ -197,7 +197,7 @@ function Roll({ S, cards, onBackToSettings, onExit }) {
         <div className="team-btns">
           {Array.from({ length: teamCount }).map((_, i) => (
             <div key={i} className={`team-btn ${i === currentTeam ? 'active-roll' : ''}`}>
-              <span className="team-btn-label">Team {i + 1}</span>
+              <span className="team-btn-label">T{i + 1}</span>
               <span className="team-btn-score">{scores[i]}</span>
             </div>
           ))}

@@ -1,17 +1,22 @@
 import { useState, useRef, useEffect } from 'react'
 import { Gear, Stop, ArrowsOut, ArrowsIn, Trophy, Coins, Question } from '@phosphor-icons/react'
 import { shuffle } from '../lib/shuffle'
-import { autoVanishGrid } from '../lib/vanishGrid'
 import { spawnConfetti } from '../lib/confetti'
 import { sound } from '../lib/sound'
+import LineFit from './LineFit'
 import {
-  START_COINS, REFILL_COINS, MAX_CARDS_PER_TEAM,
-  totalPlaced, canPlace, putCoin, takeCoin, settle,
+  START_COINS, REFILL_COINS,
+  totalPlaced, canPlace, maxCardsFor, putCoin, takeCoin, settle,
 } from '../lib/betMath'
 
+const CHOICES = 6               // cards on the board each round
 const TEAM_COLORS = ['var(--reveal)', 'var(--target)', 'var(--vanish)', 'var(--roll)', 'var(--flash)']
 const FLIP_REVEAL_MS = 250      // the mystery card face turns at about the halfway point of its 0.5s flip
 const CONFETTI_ON = true        // visual only, no extra sound
+
+const teamCoin = (i, size = 24) => (
+  <Coins className="bet-team-coin" size={size} weight="fill" style={{ color: TEAM_COLORS[i] }} />
+)
 
 // Deals one round: a set of choices, with one of them secretly the mystery card.
 // Avoids repeating a mystery card until every card in the deck has had a turn.
@@ -29,7 +34,8 @@ function buildRound(cards, count, usedRef) {
 
 function Bet({ S, cards, onBackToSettings, onExit }) {
   const teamCount = S.betTeams || 3
-  const choiceCount = Math.min(S.betChoices || 8, cards.length)
+  const choiceCount = Math.min(CHOICES, cards.length)
+  const maxCards = maxCardsFor(choiceCount) // different cards a team may use; one card always stays uncovered
   const usedRef = useRef(new Set())
 
   // coins = each team's total. It only changes at the reveal (by exactly the result shown) and at the next round (+refill).
@@ -75,7 +81,7 @@ function Bet({ S, cards, onBackToSettings, onExit }) {
   function placeCoin(cardId) {
     if (phase !== 'betting') return
     const t = activeTeam
-    if (!canPlace(coins[t], stakes[t], cardId)) {
+    if (!canPlace(coins[t], stakes[t], cardId, maxCards)) {
       sound.tick({ freq: 300, volume: 1.2, dur: 0.09 }) // low "thunk": can't do that
       return
     }
@@ -120,7 +126,8 @@ function Bet({ S, cards, onBackToSettings, onExit }) {
     later(() => sound.play('spellBonus', { volume: 0.7 }), 200) // the +2 refill
   }
 
-  const [cols, rows] = autoVanishGrid(board.choices.length)
+  const cols = board.choices.length <= 4 ? 2 : 3
+  const rows = Math.ceil(board.choices.length / cols)
 
   const ranked = coins
     .map((c, i) => ({ label: teamName(i), coins: c }))
@@ -141,14 +148,8 @@ function Bet({ S, cards, onBackToSettings, onExit }) {
               className={`team-btn ${i === activeTeam ? 'active-roll' : ''}`}
               onClick={() => setActiveTeam(i)}
             >
-              <span className="team-btn-label">
-                <i className="bet-team-dot" style={{ background: TEAM_COLORS[i] }} />
-                {teamShort(i)}
-              </span>
-              <span className="team-btn-score">
-                <Coins size={16} weight="fill" />
-                {coins[i]}
-              </span>
+              <span className="team-btn-label">{teamCoin(i, 26)}{teamShort(i)}</span>
+              <span className="team-btn-score">{coins[i]}</span>
             </button>
           ))}
         </div>
@@ -175,7 +176,9 @@ function Bet({ S, cards, onBackToSettings, onExit }) {
                 <div className="bet-face-img">
                   <img src={board.mystery.image_url} alt={board.mystery.label} />
                 </div>
-                {S.betShowText && <div className="bet-face-word">{board.mystery.label}</div>}
+                {S.betShowText && (
+                  <LineFit text={board.mystery.label} max={48} min={20} className="bet-face-word" />
+                )}
               </div>
             </div>
           </div>
@@ -184,7 +187,7 @@ function Bet({ S, cards, onBackToSettings, onExit }) {
             <div className="bet-results">
               {deltas.map((d, t) => (
                 <div key={t} className="bet-result-row">
-                  <i className="bet-team-dot" style={{ background: TEAM_COLORS[t] }} />
+                  {teamCoin(t, 26)}
                   {teamShort(t)}
                   <span className={`bet-result-delta ${d > 0 ? 'up' : d < 0 ? 'down' : 'zero'}`}>
                     {d > 0 ? `+${d}` : d}
@@ -194,9 +197,9 @@ function Bet({ S, cards, onBackToSettings, onExit }) {
             </div>
           ) : (
             <div className="bet-hint">
-              <b><i className="bet-team-dot" style={{ background: TEAM_COLORS[activeTeam] }} />{teamShort(activeTeam)}</b>{' '}
+              <b>{teamCoin(activeTeam, 20)}{teamShort(activeTeam)}</b>{' '}
               has {activeLeft} {activeLeft === 1 ? 'coin' : 'coins'} left to place.
-              Up to {MAX_CARDS_PER_TEAM} cards each. Tap a coin to take it back.
+              Up to {maxCards} cards each. Tap a coin to take it back.
             </div>
           )}
 
@@ -223,7 +226,9 @@ function Bet({ S, cards, onBackToSettings, onExit }) {
                   <div className="bet-choice-img">
                     <img src={card.image_url} alt={card.label} />
                   </div>
-                  {S.betShowText && <div className="bet-choice-word">{card.label}</div>}
+                  {S.betShowText && (
+                    <LineFit text={card.label} max={20} min={11} className="bet-choice-word" />
+                  )}
                   <div className="bet-chips">
                     {stakes.map((s, t) =>
                       s[card.id] ? (
