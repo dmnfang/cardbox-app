@@ -1,1 +1,1 @@
-export const BET_LABEL = 'Wager'
+export const BET_LABEL = 'Guess'

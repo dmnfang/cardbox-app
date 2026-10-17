@@ -76,7 +76,7 @@ function Spell({ S, updateS, cards, onBackToSettings, onExit }) {
   useEffect(() => {
     if (status !== 'playing') return
     if (timeLeft > 0 && timeLeft <= COUNTDOWN_FROM) {
-      sound.play('pixelBlip', { rate: 1 + (COUNTDOWN_FROM - timeLeft) * 0.08, volume: 0.8 })
+      sound.tick({ freq: 900 + (COUNTDOWN_FROM - timeLeft) * 120, volume: 0.9 })
     }
   }, [timeLeft, status])
 
@@ -177,7 +177,25 @@ function Spell({ S, updateS, cards, onBackToSettings, onExit }) {
         <button className="nav-btn" onClick={onBackToSettings} aria-label="Settings">
           <Gear size={18} weight="fill" />
         </button>
-        <span className="topbar-counter">Word {Math.min(wordIdx + 1, spellWords.current.length)} of {spellWords.current.length}</span>
+
+        <div className="spell-header-center">
+          <span className="topbar-counter">
+            Word {Math.min(wordIdx + 1, spellWords.current.length)} of {spellWords.current.length}
+          </span>
+          {previousResult && (
+            <span className="spell-last-time">
+              <span className="spell-last-time-label">
+                {previousResult.finishedEarly ? 'Last Time' : 'Last Run'}
+              </span>
+              <span className="spell-last-time-value">
+                {previousResult.finishedEarly
+                  ? formatClock(previousResult.timeLeft)
+                  : `${previousResult.wordsCompleted}/${previousResult.totalWords}`}
+              </span>
+            </span>
+          )}
+        </div>
+
         <button className="nav-btn" onClick={toggleFullscreen} aria-label="Toggle fullscreen">
           {isFullscreen ? <ArrowsIn size={18} weight="fill" /> : <ArrowsOut size={18} weight="fill" />}
         </button>
@@ -187,65 +205,59 @@ function Spell({ S, updateS, cards, onBackToSettings, onExit }) {
       </div>
 
       <div className="spell-body">
-        <div className="spell-card-panel">
-          {currentWord && (
-            <div className="spell-card">
-              <div className="spell-card-img">
-                <img src={currentWord.image_url} alt={currentWord.label} />
+        <div className="spell-top">
+          <div className="spell-card-panel">
+            {currentWord && (
+              <div className="spell-card">
+                <div className="spell-card-img">
+                  <img src={currentWord.image_url} alt={currentWord.label} />
+                </div>
               </div>
-              <div className="spell-word-boxes">
-                {wordChars.map((ch, i) => {
-                  if (!isLetterChar(ch)) {
-                    return <span key={i} className="spell-word-space">{ch === ' ' ? '' : ch}</span>
-                  }
-                  const isFilled = filledPositions.has(i)
-                  const isActive = i === currentPos
-                  const displayCh = ch.toUpperCase()
-                  return (
-                    <div key={i} className={`spell-letter-box ${isFilled ? 'filled' : ''} ${isActive ? 'active' : ''}`}>
-                      <span>{isFilled ? (isUpper ? displayCh : displayCh.toLowerCase()) : ''}</span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="spell-side-panel">
-          <div className="spell-timer-box">
-            <span className="spell-timer-label">Timer</span>
-            <span className="spell-timer-value">{formatClock(timeLeft)}</span>
-            {bonusFlash !== null && (
-              <span key={Date.now()} className="spell-bonus-flash">+{bonusFlash}s</span>
             )}
           </div>
 
-          {previousResult && (
-            <div className="spell-last-run-box">
-              <span className="spell-last-run-label">Last Run</span>
-              <span className="spell-last-run-value">
-                {previousResult.finishedEarly
-                  ? `${formatClock(previousResult.timeLeft)} to spare`
-                  : `${previousResult.wordsCompleted}/${previousResult.totalWords} words`}
-              </span>
+          <div className="spell-side-panel">
+            <div className="spell-timer-box">
+              <span className="spell-timer-label">Timer</span>
+              <span className="spell-timer-value">{formatClock(timeLeft)}</span>
+              {bonusFlash !== null && (
+                <span key={Date.now()} className="spell-bonus-flash">+{bonusFlash}s</span>
+              )}
             </div>
-          )}
 
-          <div className="spell-alpha-grid">
-            {ALPHABET.map(letter => (
-              <button
-                key={letter}
-                className={`spell-alpha-key ${wrongFlashLetter === letter ? 'wrong shake' : ''}`}
-                data-sound="none"
-                disabled={status !== 'playing'}
-                onClick={() => tapLetter(letter)}
-              >
-                {isUpper ? letter : letter.toLowerCase()}
-              </button>
-            ))}
+            <div className="spell-alpha-grid">
+              {ALPHABET.map(letter => (
+                <button
+                  key={letter}
+                  className={`spell-alpha-key ${wrongFlashLetter === letter ? 'wrong shake' : ''}`}
+                  data-sound="none"
+                  disabled={status !== 'playing'}
+                  onClick={() => tapLetter(letter)}
+                >
+                  {isUpper ? letter : letter.toLowerCase()}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
+
+        {currentWord && (
+          <div className="spell-word-boxes">
+            {wordChars.map((ch, i) => {
+              if (!isLetterChar(ch)) {
+                return <span key={i} className="spell-word-space">{ch === ' ' ? '' : ch}</span>
+              }
+              const isFilled = filledPositions.has(i)
+              const isActive = i === currentPos
+              const displayCh = ch.toUpperCase()
+              return (
+                <div key={i} className={`spell-letter-box ${isFilled ? 'filled' : ''} ${isActive ? 'active' : ''}`}>
+                  <span>{isFilled ? (isUpper ? displayCh : displayCh.toLowerCase()) : ''}</span>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {showEnd && (

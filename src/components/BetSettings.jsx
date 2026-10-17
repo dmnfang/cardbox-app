@@ -38,7 +38,7 @@ function BetSettings({ S, updateS }) {
       <div className="bet-info-text">
         One card is hidden. Teams put their coins on the cards they think it could be, on up to 5 different cards.
         When it's revealed, coins on the right card come back doubled and coins on the wrong cards are lost.
-        Everyone starts with 5 coins and gets 2 more every round.
+        Everyone starts with 5 coins and gets 5 more every round.
       </div>
       <div style={{ flex: 1 }} />
     </>

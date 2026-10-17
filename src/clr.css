@@ -125,12 +125,12 @@
   --stroke-selected: var(--grape-500);
 
   /* Interactive */
---green:                 var(--grape-500);   /* was leaf-500 */
---interactive-primary:   var(--grape-500);   /* was leaf-500 */
---interactive-secondary: var(--sun-500);
---tab-active:            var(--grape-500);   /* was leaf-500 */
---tab-inactive:          var(--sand-700);
---interactive-disabled:  var(--sand-300);
+  --green:                 var(--grape-500);
+  --interactive-primary:   var(--grape-500);
+  --interactive-secondary: var(--sun-500);
+  --tab-active:            var(--grape-500);
+  --tab-inactive:          var(--sand-700);
+  --interactive-disabled:  var(--sand-300);
 
   /* Mode */
   --flash:          var(--sun-500);
@@ -143,6 +143,16 @@
   --vanish-subtle:  var(--leaf-50);
   --roll:           var(--grape-500);
   --roll-subtle:    var(--grape-50);
+  --flip:           var(--peach-500);
+  --flip-subtle:    var(--peach-50);
+  --spell:          var(--mint-500);
+  --spell-subtle:   var(--mint-50);
+  --call:           var(--bubblegum-500);
+  --call-subtle:    var(--bubblegum-50);
+  --beat:           var(--indigo-500);
+  --beat-subtle:    var(--indigo-50);
+  --bet:            var(--orange-500);
+  --bet-subtle:     var(--orange-50);
 
   /* Feedback */
   --success:        var(--leaf-500);
@@ -233,6 +243,28 @@ img {
   overflow: hidden;
 }
 
+.home-loading,
+.home-error {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.home-error { color: var(--error); }
+
+.deck-grid-empty {
+  grid-column: 1 / -1;
+  padding: 32px 0;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
 .home-screen {
   display: flex;
   flex-direction: column;
@@ -264,7 +296,6 @@ img {
 }
 
 .brand-logo {
-  width: 32x;
   height: 32px;
   display: block;
 }
@@ -480,15 +511,6 @@ img {
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-
-.account-secondary-btn {
-  height: 36px;
-  border-radius: var(--r-md);
-  background: var(--surface-inset);
-  color: var(--text-primary);
-  font-size: 14px;
-  font-weight: 700;
 }
 
 .account-text-btn {
@@ -769,7 +791,6 @@ img {
 
 .modes-list {
   display: grid;
-  flex-direction: column;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
   align-content: start;
@@ -785,7 +806,7 @@ img {
 }
 
 .mode-btn {
-  height: 64px;
+  height: 56px;
   width: 100%;
   border-radius: var(--r-lg);
   padding: 0 12px;
@@ -1086,7 +1107,7 @@ img {
 }
 
 .launch-btn {
-  height: 80px;
+  height: 56px;
   border-radius: var(--r-lg);
   width: 100%;
   display: flex;
@@ -1175,12 +1196,6 @@ img {
   overflow: hidden;
 }
 
-.flash-img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-
 .flash-word {
   width: 100%;
   display: flex;
@@ -1251,12 +1266,6 @@ img {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-}
-
-.flash-grid-cell-img img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
 }
 
 .flash-grid-cell-word {
@@ -1386,6 +1395,8 @@ img {
 .loading-bar-fill-vanish { background: var(--vanish); }
 .loading-bar-fill-roll   { background: var(--roll); }
 
+.loading-bar-fill-call  { background: var(--call); }
+
 .loading-count {
   font-size: 14px;
   font-weight: 700;
@@ -1492,12 +1503,6 @@ img {
 
 @keyframes revealLabelIn {
   to { opacity: 1; transform: translateY(0); }
-}
-
-.reveal-content img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
 }
 
 .reveal-word {
@@ -1708,12 +1713,6 @@ img {
   overflow: hidden;
 }
 
-.word-tile-img img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-
 .word-tile-label {
   font-size: 16px;
   flex-shrink: 0;
@@ -1826,7 +1825,7 @@ img {
 }
 
 /* ============================================
-   TOPBAR ACTION (Vanish's Shuffle/Guess button)
+   TOPBAR ACTIONS AND TOGGLES
    ============================================ */
 .topbar-action {
   height: 40px;
@@ -1841,7 +1840,21 @@ img {
   justify-content: center;
 }
 
+.topbar-action:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .topbar-action-vanish { background: var(--vanish); }
+
+.topbar-action-reveal { background: var(--reveal); }
+
+.topbar-action-roll {
+  background: var(--roll);
+  min-width: 48px;
+}
+
+.topbar-action-call { background: var(--call); }
 
 .nav-btn-showme {
   width: auto;
@@ -1850,6 +1863,25 @@ img {
   color: var(--text-secondary);
   font-size: 16px;
   font-weight: 800;
+}
+
+.topbar-toggle {
+  height: 40px;
+  padding: 0 16px;
+  border-radius: var(--r-md);
+  background: var(--surface-panel);
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.topbar-toggle.active {
+  background: var(--flip);
+  color: #fff;
 }
 
 /* ============================================
@@ -1883,12 +1915,6 @@ img {
   justify-content: center;
   min-height: 0;
   overflow: hidden;
-}
-
-.vanish-pcell-img img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
 }
 
 .vanish-pcell-word {
@@ -1994,12 +2020,6 @@ img {
   overflow: hidden;
 }
 
-.vanish-cell-img img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-
 .vanish-cell-word {
   font-family: var(--font-card);
   font-size: 16px;
@@ -2048,7 +2068,7 @@ img {
 }
 
 /* ============================================
-   TEAM BUTTONS (Roll only - other modes stripped this)
+   TEAM BUTTONS (shared by Roll, Flip and Bet)
    ============================================ */
 .team-btns {
   display: flex;
@@ -2058,7 +2078,7 @@ img {
 
 .team-btn {
   height: 40px;
-  width: 140px;
+  width: auto;
   border-radius: var(--r-md);
   background: var(--surface-card);
   border: 2px solid var(--stroke-default);
@@ -2071,6 +2091,7 @@ img {
   font-size: 18px;
   line-height: 24px;
   transition: border-color 0.15s;
+  min-width: 84px;
 }
 
 .team-btn-label {
@@ -2092,10 +2113,8 @@ img {
   border-color: var(--roll);
 }
 
-.topbar-action-roll {
-  background: var(--roll);
-  min-width: 48px;
-}
+.team-btn .team-icon,
+.team-btn .bet-team-coin { margin: 0; }
 
 /* ============================================
    ROLL - board
@@ -2221,7 +2240,6 @@ img {
   min-height: 0;
   overflow: hidden;
 }
-.roll-card-img-wrap img { max-width: 100%; max-height: 100%; object-fit: contain; }
 
 .roll-card-word {
   font-family: var(--font-card);
@@ -2497,7 +2515,6 @@ img {
   min-height: 0;
   overflow: hidden;
 }
-.edit-card-img img { max-width: 100%; max-height: 100%; object-fit: contain; }
 
 .edit-card-label {
   font-family: var(--font-card);
@@ -2526,13 +2543,36 @@ img {
   justify-content: center;
 }
 
-/* ============================================
-   MODE TOKENS — add alongside the existing set
-   ============================================ */
-:root {
-  --flip:          var(--peach-500);
-  --flip-subtle:   var(--peach-50);
+.edit-cards-deck-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
+
+.edit-deck-toggle-btn {
+  height: 32px;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
+  background: var(--surface-inset);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+
+.edit-deck-toggle-btn.all-off {
+  background: var(--surface-panel);
+  color: var(--text-disabled);
+}
+
+/* ============================================
+   FLIP — mode colours
+   ============================================ */
 
 .mode-btn-flip           { background: var(--flip); }
 .mode-btn-flip:disabled  { background: var(--flip-subtle); }
@@ -2610,7 +2650,7 @@ img {
 
 .flip-scaffold-text {
   font-family: var(--font-display);
-  font-size: 48px;
+  font-size: clamp(30px, 2.6vw, 48px);
   font-weight: 600;
   color: var(--text-primary);
   line-height: 1.3;
@@ -2644,7 +2684,7 @@ img {
 
 .flip-scaffold-turn-score-value {
   font-family: var(--font-display);
-  font-size: 56px;
+  font-size: clamp(40px, 3.6vw, 56px);
   font-weight: 700;
   color: var(--flip);
 }
@@ -2679,17 +2719,6 @@ img {
 .flip-next-team-btn:disabled {
   background: var(--surface-inset);
   color: var(--text-disabled);
-}
-
-.flip-grid.flip-grid-coins {
-  grid-template-columns: 1fr;
-  grid-template-rows: repeat(2, 1fr);
-}
-
-.flip-scaffold-turn-score-coins {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 /* ============================================
@@ -2764,12 +2793,6 @@ img {
   overflow: hidden;
 }
 
-.flip-cell-img img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-
 .flip-cell-word {
   flex-shrink: 0;
   font-family: var(--font-card);
@@ -2811,7 +2834,9 @@ img {
 .flip-scope .team-btn-score { color: var(--flip); }
 .flip-scope .team-btn.active-roll { border-color: var(--flip); }
 
-.flip-scope .topbar-counter {
+.flip-scope .topbar-counter,
+.spell-scope .topbar-counter,
+.bet-scope .topbar-counter {
   font-family: var(--font-display);
   font-size: 20px;
   font-weight: 700;
@@ -2819,12 +2844,8 @@ img {
 }
 
 /* ============================================
-   MODE TOKENS — Spell
+   SPELL — mode colours
    ============================================ */
-:root {
-  --spell:        var(--mint-500);
-  --spell-subtle: var(--mint-50);
-}
 
 .mode-btn-spell          { background: var(--spell); }
 .mode-btn-spell:disabled { background: var(--spell-subtle); }
@@ -2851,14 +2872,17 @@ img {
   padding: 20px;
   min-height: 0;
   overflow: hidden;
+  --spell-row: clamp(104px, 13vh, 144px);
+  flex-direction: column;
 }
 
 .spell-card-panel {
-  flex: 2;
+  flex: 1;
   min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  min-height: 0;
 }
 
 .spell-card {
@@ -2881,41 +2905,38 @@ img {
   min-height: 0;
   width: 100%;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   overflow: hidden;
 }
 
-.spell-card-img img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-
 .spell-word-boxes {
-  height: 104px;
+  height: var(--spell-row);
   flex-shrink: 0;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: center;
   gap: 8px;
+  width: 100%;
 }
 
 .spell-letter-box {
-  width: 88px;
-  height: 104px;
   border-radius: var(--r-lg);
   border: 3px solid var(--stroke-medium);
-  background: var(--surface-inset);
+  background: var(--surface-card);   /* was var(--surface-inset) */
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-display);
-  font-size: 48px;
   font-weight: 700;
   color: var(--text-primary);
   transition: border-color 0.15s ease, transform 0.15s ease;
+  max-width: calc(var(--spell-row) * 0.846);
+  flex: 1 1 0;
+  min-width: 0;
+  aspect-ratio: 88 / 104;
+  container-type: inline-size;
 }
 
 .spell-letter-box.active {
@@ -2930,12 +2951,16 @@ img {
   transform: scale(1);
 }
 
+.spell-letter-box > span { font-size: 55cqw; line-height: 1; }
+
 .spell-word-space {
-  width: 32px;
+  width: auto;
+  flex: 0 1 28px;
+  min-width: 0;
 }
 
 .spell-side-panel {
-  flex: 0 0 340px;
+  flex: 0 0 clamp(300px, 28vw, 380px);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -2994,7 +3019,7 @@ img {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 8px;
   align-content: start;
   overflow-y: auto;
@@ -3037,33 +3062,6 @@ img {
   color: var(--text-disabled);
 }
 
-.spell-last-run-box {
-  flex-shrink: 0;
-  background: var(--surface-card);
-  border: 2px solid var(--stroke-default);
-  border-radius: var(--r-lg);
-  padding: 16px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.spell-last-run-label {
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
-.spell-last-run-value {
-  font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
 .spell-new-best {
   display: flex;
   align-items: center;
@@ -3075,6 +3073,45 @@ img {
   font-family: var(--font-display);
   font-size: 16px;
   font-weight: 700;
+}
+
+/* ============================================
+   SPELL — image + side panel on top, spelling row underneath
+   ============================================ */
+
+.spell-top {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 20px;
+}
+
+/* header: counter + Last Time */
+.spell-header-center {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.spell-last-time {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.spell-last-time-label {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.spell-last-time-value {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 /* ============================================
@@ -3103,72 +3140,12 @@ img {
 /* ============================================
    SPELL — scoped overrides for reused Roll classes
    ============================================ */
-.spell-scope .topbar-counter {
-  font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
 
 .spell-scope .end-btn-roll { background: var(--spell); }
 
-.topbar-action-reveal { background: var(--reveal); }
-
-.topbar-action:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.topbar-toggle {
-  height: 40px;
-  padding: 0 16px;
-  border-radius: var(--r-md);
-  background: var(--surface-panel);
-  color: var(--text-secondary);
-  font-size: 14px;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: background 0.15s, color 0.15s;
-}
-
-.topbar-toggle.active {
-  background: var(--flip);
-  color: #fff;
-}
-
-.edit-cards-deck-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.edit-deck-toggle-btn {
-  height: 32px;
-  padding: 0 14px;
-  border-radius: var(--r-pill);
-  background: var(--surface-inset);
-  color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-  transition: background 0.15s, color 0.15s;
-}
-
-.edit-deck-toggle-btn.all-off {
-  background: var(--surface-panel);
-  color: var(--text-disabled);
-}
-
-:root {
-  --call:         var(--bubblegum-500);
-  --call-subtle:  var(--bubblegum-50);
-}
+/* ============================================
+   CALL — mode colours, Bingo and Lucky Draw
+   ============================================ */
 
 .mode-btn-call          { background: var(--call); }
 .mode-btn-call:disabled { background: var(--call-subtle); }
@@ -3192,7 +3169,7 @@ img {
 }
 
 .call-called-panel {
-  flex: 1;   /* was 2 */
+  flex: 1;
   min-width: 0;
   min-height: 0;
   background: var(--surface-panel);
@@ -3219,7 +3196,7 @@ img {
 .call-called-grid::-webkit-scrollbar { display: none; }
 
 .call-spinner-panel {
-  flex: 1.5;   /* was 1 — now the wider side */
+  flex: 1.5;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -3282,12 +3259,6 @@ img {
   overflow: hidden;
 }
 
-.call-reel-frame-img img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-
 .call-reel-word {
   flex-shrink: 0;
   font-family: var(--font-card);
@@ -3298,7 +3269,7 @@ img {
 }
 
 .call-spin-btn {
-  height: 64px;
+  height: 56px;
   border-radius: var(--r-lg);
   background: var(--call);
   color: #fff;
@@ -3322,16 +3293,8 @@ img {
 }
 
 /* ============================================
-   MODE TOKENS — Beat
+   BEAT — mode colours
    ============================================ */
-:root {
-  /* Indigo is defined here so Beat works even if the expanded palette isn't in this file yet */
-  --indigo-50:  #e9eafb;
-  --indigo-500: #6468e6;
-
-  --beat:        var(--indigo-500);
-  --beat-subtle: var(--indigo-50);
-}
 
 .mode-btn-beat          { background: var(--beat); }
 .mode-btn-beat:disabled { background: var(--beat-subtle); }
@@ -3345,19 +3308,12 @@ img {
 .beat-scope { position: relative; }
 .beat-scope .end-btn-roll { background: var(--beat); }
 
+.beat-scope .spell-end-stat-value { color: var(--beat); }
+
 .beat-header {
   display: flex;
   align-items: center;
   gap: 18px;
-}
-
-.beat-phase {
-  min-width: 110px;
-  text-align: right;
-  font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--text-primary);
 }
 
 .beat-pips {
@@ -3452,12 +3408,6 @@ img {
   overflow: hidden;
 }
 
-.beat-card-img img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-
 .beat-card-word {
   flex-shrink: 0;
   font-family: var(--font-card);
@@ -3490,7 +3440,6 @@ img {
 /* ============================================
    CALL — Lucky Draw
    ============================================ */
-.topbar-action-call { background: var(--call); }
 
 .lucky-area {
   position: relative;
@@ -3554,12 +3503,6 @@ img {
   overflow: hidden;
 }
 
-.lucky-card-img img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-
 .lucky-card-word {
   flex-shrink: 0;
   font-family: var(--font-card);
@@ -3614,12 +3557,8 @@ img {
 }
 
 /* ============================================
-   BET
+   BET — mode colours, settings and play screen
    ============================================ */
-:root {
-  --bet:        var(--orange-500);
-  --bet-subtle: var(--orange-50);
-}
 
 .mode-btn-bet          { background: var(--bet); }
 .mode-btn-bet:disabled { background: var(--bet-subtle); }
@@ -3636,20 +3575,11 @@ img {
 }
 
 /* top bar */
-.bet-scope .topbar-counter {
-  font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
 
 .bet-scope .team-btn { cursor: pointer; }
 .bet-scope .team-btn.active-roll { border-color: var(--bet); }
 .bet-scope .team-btn-score {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--bet);
+  color: var(--text-primary);
 }
 
 /* layout */
@@ -3717,13 +3647,13 @@ img {
 
 .bet-face-hidden {
   background: var(--surface-card);
-  border: 3px solid var(--bet);
+  border: 2px solid var(--stroke-default);
   color: var(--bet);
 }
 
 .bet-face-shown {
   background: var(--surface-card);
-  border: 3px solid var(--bet);
+  border: 2px solid var(--stroke-default);
   transform: rotateY(180deg);
 }
 
@@ -3736,8 +3666,6 @@ img {
   justify-content: center;
   overflow: hidden;
 }
-
-.bet-face-img img { max-width: 100%; max-height: 100%; object-fit: contain; }
 
 .bet-face-word {
   flex-shrink: 0;
@@ -3762,6 +3690,8 @@ img {
   flex-shrink: 0;
   display: flex;
   align-items: flex-start;
+  transition: height 0.3s ease;
+  overflow: hidden;
 }
 
 .bet-results {
@@ -3785,7 +3715,6 @@ img {
 .bet-slot > * { flex: 1; min-width: 0; }
 
 .bet-result-delta {
-  margin-left: auto;
   font-family: var(--font-display);
   font-size: 32px;
   font-weight: 700;
@@ -3794,6 +3723,9 @@ img {
 .bet-result-delta.up   { color: var(--success); }
 .bet-result-delta.down { color: var(--error); }
 .bet-result-delta.zero { color: var(--text-muted); }
+
+.bet-result-nums { margin-left: auto; display: flex; align-items: baseline; gap: 16px; }
+.bet-result-nums .bet-result-delta { margin-left: 0; font-size: 28px; }
 
 .bet-main-btn {
   flex-shrink: 0;
@@ -3858,8 +3790,6 @@ img {
   transition: opacity 0.2s ease;
 }
 
-.bet-choice-img img { max-width: 100%; max-height: 100%; object-fit: contain; }
-
 .bet-choice-word {
   flex-shrink: 0;
   max-width: 100%;
@@ -3875,20 +3805,6 @@ img {
 }
 
 .bet-team-coin { flex-shrink: 0; margin-right: 6px; vertical-align: -6px; }
-
-.bet-scope .team-btn-score { color: var(--text-primary); }
-
-/* mystery card: neutral border, orange question mark only */
-.bet-face-hidden {
-  background: var(--surface-card);
-  border: 2px solid var(--stroke-default);
-  color: var(--bet);
-}
-.bet-face-shown {
-  background: var(--surface-card);
-  border: 2px solid var(--stroke-default);
-  transform: rotateY(180deg);
-}
 
 /* coin chips: their own row at the bottom of each card, overlapping like a stack */
 .bet-chips {
@@ -3919,17 +3835,11 @@ img {
 
 .bet-chip:first-child { margin-left: 0; }
 
+.bet-scope .roll-end-score { color: var(--bet); }
+
 /* ============================================
-   VIEWPORT POLISH
+   RESPONSIVE AND UTILITIES
    ============================================ */
-
-/* Large action buttons are 56px everywhere (header, toggle and icon buttons stay at 40) */
-.mode-btn      { height: 56px; }
-.launch-btn    { height: 56px; }
-.call-spin-btn { height: 56px; }
-
-/* Team buttons: just "T1" + score, sized to their content */
-.team-btn { width: auto; min-width: 84px; padding: 0 12px; }
 
 /* Prelaunch top bar: icon-only mode pills below 1500px wide (the selected one keeps its label) */
 @media (max-width: 1499px) {
@@ -3937,24 +3847,6 @@ img {
   .mode-toggle-pill:not(.active) { padding: 0 12px; }
   .mode-toggle-group { gap: 8px; }
 }
-
-/* Flip: question/answer text scales with the screen instead of staying at 48px */
-.flip-scaffold-text { font-size: clamp(30px, 2.6vw, 48px); }
-.flip-scaffold-turn-score-value { font-size: clamp(40px, 3.6vw, 56px); }
-
-/* Spell: letter boxes shrink so long words and phrases stay on one row */
-.spell-word-boxes { flex-wrap: nowrap; width: 100%; }
-.spell-letter-box {
-  flex: 1 1 0;
-  min-width: 0;
-  max-width: 88px;
-  width: auto;
-  height: auto;
-  aspect-ratio: 88 / 104;
-  container-type: inline-size;
-}
-.spell-letter-box > span { font-size: 55cqw; line-height: 1; }
-.spell-word-space { flex: 0 1 28px; width: auto; min-width: 0; }
 
 /* One-line labels that shrink to fit (see LineFit.jsx) */
 .line-fit {
@@ -3965,6 +3857,3 @@ img {
   text-align: center;
 }
 .line-fit > span { display: inline-block; }
-
-.team-btn .team-icon,
-.team-btn .bet-team-coin { margin: 0; }

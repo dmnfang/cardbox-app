@@ -7,7 +7,7 @@ import { TEAM_COLORS } from '../lib/teamColors'
 import LineFit from './LineFit'
 import {
   START_COINS, REFILL_COINS,
-  totalPlaced, canPlace, maxCardsFor, putCoin, takeCoin, settle,
+  totalPlaced, canPlace, maxCardsFor, putCoin, takeCoin, settle, uniqueByLabel, labelKey,
 } from '../lib/betMath'
 
 const CHOICES = 6               // cards on the board each round
@@ -19,9 +19,10 @@ const teamCoin = (i, size = 24) => (
 )
 
 // Deals one round: a set of choices, with one of them secretly the mystery card.
+// A word that appears under two card ids (e.g. in two selected decks) only shows up once.
 // Avoids repeating a mystery card until every card in the deck has had a turn.
 function buildRound(cards, count, usedRef) {
-  const choices = shuffle([...cards]).slice(0, count)
+  const choices = uniqueByLabel(shuffle([...cards])).slice(0, count)
   let pool = choices.filter(c => !usedRef.current.has(c.id))
   if (pool.length === 0) {
     usedRef.current.clear()
@@ -34,7 +35,8 @@ function buildRound(cards, count, usedRef) {
 
 function Bet({ S, cards, onBackToSettings, onExit }) {
   const teamCount = S.betTeams || 3
-  const choiceCount = Math.min(CHOICES, cards.length)
+  const uniqueCount = new Set(cards.map(labelKey)).size
+  const choiceCount = Math.min(CHOICES, uniqueCount)
   const maxCards = maxCardsFor(choiceCount) // different cards a team may use; one card always stays uncovered
   const usedRef = useRef(new Set())
 
@@ -45,7 +47,7 @@ function Bet({ S, cards, onBackToSettings, onExit }) {
   const [board, setBoard] = useState(() => buildRound(cards, choiceCount, usedRef))
   const [phase, setPhase] = useState('betting') // 'betting' | 'revealed'
   const [activeTeam, setActiveTeam] = useState(0)
-  const [deltas, setDeltas] = useState(null)
+  const [results, setResults] = useState(null)  // per team: { spent, gained, net }
   const [showEnd, setShowEnd] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const soundTimers = useRef([])
@@ -96,12 +98,11 @@ function Bet({ S, cards, onBackToSettings, onExit }) {
   function reveal() {
     if (phase !== 'betting' || settledRef.current) return
     settledRef.current = true
-    const mysteryId = board.mystery.id
-    const { deltas: result, nextCoins } = settle(coins, stakes, mysteryId)
-    const anyWin = stakes.some(s => (s[mysteryId] || 0) > 0)
+    const { results: roundResults, nextCoins } = settle(coins, stakes, board.mystery.id)
+    const anyWin = roundResults.some(r => r.gained > 0)
 
     setCoins(nextCoins)
-    setDeltas(result)
+    setResults(roundResults)
     setPhase('revealed')
 
     sound.play('cardFlip')
@@ -118,7 +119,7 @@ function Bet({ S, cards, onBackToSettings, onExit }) {
     setStakes(Array.from({ length: teamCount }, () => ({})))
     setBoard(buildRound(cards, choiceCount, usedRef))
     setRoundNum(n => n + 1)
-    setDeltas(null)
+    setResults(null)
     setPhase('betting')
     sound.play('nextCard')
     later(() => sound.play('spellBonus', { volume: 0.7 }), 200) // the +2 refill
@@ -192,11 +193,13 @@ function Bet({ S, cards, onBackToSettings, onExit }) {
                 className="bet-results"
                 style={{ gridTemplateColumns: teamCount === 1 ? '1fr' : '1fr 1fr' }}
               >
-                {deltas.map((d, t) => (
+                {results.map((r, t) => (
                   <div key={t} className="bet-result-pill">
                     {teamCoin(t, 28)}
-                    <span className={`bet-result-delta ${d > 0 ? 'up' : d < 0 ? 'down' : 'zero'}`}>
-                      {d > 0 ? `+${d}` : d}
+                    <span className="bet-result-nums">
+                      {r.spent === 0 && <span className="bet-result-delta zero">0</span>}
+                      {r.spent > 0 && <span className="bet-result-delta down">−{r.spent}</span>}
+                      {r.gained > 0 && <span className="bet-result-delta up">+{r.gained}</span>}
                     </span>
                   </div>
                 ))}
