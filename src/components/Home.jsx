@@ -188,6 +188,19 @@ function Header({ isFullscreen, onToggleFullscreen, accountOpen, setAccountOpen,
   )
 }
 
+function DeckSkeletons({ count = 8 }) {
+  return Array.from({ length: count }, (_, i) => (
+    <div key={i} className="deck-card skeleton-card" aria-hidden="true">
+      <div className="deck-card-header">
+        <span className="skeleton skeleton-title" />
+        <span className="skeleton skeleton-dot" />
+      </div>
+      <span className="skeleton skeleton-line" />
+      <span className="skeleton skeleton-chip" />
+    </div>
+  ))
+}
+
 function Home({ selectedDecks, onToggleDeck, onClearDecks, onLaunch }) {
   const [decks, setDecks] = useState([])
   const [loading, setLoading] = useState(true)
@@ -226,7 +239,6 @@ function Home({ selectedDecks, onToggleDeck, onClearDecks, onLaunch }) {
     )
   }, [decks, query])
 
-  if (loading) return <div className="home-loading">Loading library…</div>
   if (error) return <div className="home-error">Couldn't load decks: {error}</div>
 
   return (
@@ -263,6 +275,7 @@ function Home({ selectedDecks, onToggleDeck, onClearDecks, onLaunch }) {
                 type="text"
                 className="search-input"
                 data-stable-viewport
+                disabled={loading}
                 placeholder="Search for a word or deck…"
                 value={query}
                 onChange={e => setQuery(e.target.value)}
@@ -279,8 +292,14 @@ function Home({ selectedDecks, onToggleDeck, onClearDecks, onLaunch }) {
               )}
             </div>
 
-            <div className="deck-grid">
-              {filteredDecks.map(deck => {
+            <div className="deck-grid" aria-busy={loading}>
+              {loading && (
+                <>
+                  <span className="sr-only">Loading library…</span>
+                  <DeckSkeletons />
+                </>
+              )}
+              {!loading && filteredDecks.map(deck => {
                 const isSelected = selectedDecks.some(d => d.id === deck.id)
                 return (
                   <div
@@ -299,7 +318,7 @@ function Home({ selectedDecks, onToggleDeck, onClearDecks, onLaunch }) {
                   </div>
                 )
               })}
-              {filteredDecks.length === 0 && (
+              {!loading && filteredDecks.length === 0 && (
                 <p className="deck-grid-empty">No decks match "{query}"</p>
               )}
             </div>

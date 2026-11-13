@@ -3857,3 +3857,89 @@ img {
   text-align: center;
 }
 .line-fit > span { display: inline-block; }
+
+/* ============================================
+   SKELETON LOADERS — sand tones
+   ============================================ */
+:root {
+  --skeleton-base:  var(--sand-100);
+  --skeleton-shine: var(--sand-0);
+}
+
+.skeleton {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  background: var(--skeleton-base);
+  border-radius: var(--r-md);
+}
+
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    color-mix(in srgb, var(--skeleton-shine) 75%, transparent) 50%,
+    transparent 80%
+  );
+  transform: translateX(-100%);
+  animation: skeletonSweep 1.6s ease-in-out infinite;
+}
+
+@keyframes skeletonSweep {
+  to { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after { animation: none; display: none; }
+}
+
+/* Deck card placeholder — same box model as .deck-card so nothing jumps when data arrives */
+.skeleton-card {
+  pointer-events: none;
+  cursor: default;
+}
+
+.skeleton-card .deck-card-header {
+  align-items: center;
+  height: 24px;
+}
+
+.skeleton-title {
+  height: 20px;
+  width: 55%;
+}
+
+.skeleton-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.skeleton-line {
+  height: 14px;
+  width: 85%;
+  margin: 3px 0; /* 20px line box, like .deck-preview */
+}
+
+.skeleton-chip {
+  width: 88px;
+  height: 32px;
+  border-radius: var(--r-pill);
+}
+
+/* Screen-reader-only text */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
